@@ -1,0 +1,39 @@
+{
+  "id": "rwiwthoh3o4ripg",
+  "startDate": "2026-03-02T00:00:00Z",
+  "dailyMessages": [
+    "Aujourd'hui, ressentez la lumière qui émane de vous.",
+    "Le lien qui nous unit est plus fort que la distance.",
+    "Chaque instant est une nouvelle occasion d'aimer.",
+    "Écoutez le silence, il parle de nous.",
+    "La promesse faite est une étoile qui ne s'éteint jamais."
+  ],
+  "steps": [
+    {
+      "type": "intro",
+      "prompt": "Une promesse vous attend.",
+      "buttonText": "Ouvrir"
+    },
+    {
+      "type": "secret",
+      "prompt": "Quel est le mot qui nous lie ?",
+      "secretWord": "ETERNITE",
+      "hint": "C'est ce que dure notre lien."
+    },
+    {
+      "type": "audio",
+      "prompt": "J'ai quelque chose à te dire...",
+      "audioUrl": "/audio/rwiwthoh3o4ripg/message.mp3"
+    },
+    {
+      "type": "promise",
+      "message": "Je te promets d'être là, à chaque battement de cœur.",
+      "buttonText": "Continuer"
+    },
+    {
+      "type": "waiting",
+      "dailyMessagePrompt": "Pensée du jour",
+      "countdownDate": "2026-06-01T00:00:00Z"
+    }
+  ]
+}
