@@ -9,6 +9,13 @@ import PromiseReveal from './PromiseReveal';
 import SecretWord from './SecretWord';
 import WaitingMode from './WaitingMode';
 
+// "Je Reviens" experience scenes
+import Scene1Opening from './Scene1Opening';
+import Scene2Verification from './Scene2Verification';
+import Scene3Universe from './Scene3Universe';
+import Scene4Intimate from './Scene4Intimate';
+import Scene5TimeMessages from './Scene5TimeMessages';
+
 const ExperienceEngine = () => {
   const { token } = useParams();
   const navigate = useNavigate();
@@ -110,6 +117,9 @@ const ExperienceEngine = () => {
 
   const step = experience.steps[currentStep];
 
+  // "Je Reviens" scenes are fully immersive — hide default UI chrome
+  const isImmersiveScene = step.type.startsWith('scene');
+
   const renderStep = () => {
     // On fusionne les données de l'étape avec le dailyMessage pour le WaitingMode
     const stepData = step.type === 'waiting' 
@@ -127,6 +137,17 @@ const ExperienceEngine = () => {
         return <PromiseReveal data={stepData} onNext={handleNext} onBack={handlePrevious} />;
       case 'waiting':
         return <WaitingMode data={stepData} onBack={handlePrevious} />;
+      // "Je Reviens" — Collier de Promesse scenes
+      case 'scene1-opening':
+        return <Scene1Opening data={stepData} onNext={handleNext} />;
+      case 'scene2-verification':
+        return <Scene2Verification data={stepData} onNext={handleNext} />;
+      case 'scene3-universe':
+        return <Scene3Universe data={stepData} onNext={handleNext} />;
+      case 'scene4-intimate':
+        return <Scene4Intimate data={stepData} onNext={handleNext} />;
+      case 'scene5-timemessages':
+        return <Scene5TimeMessages data={stepData} dailyMessage={dailyMessage} />;
       default:
         return <div>Étape inconnue</div>;
     }
@@ -134,34 +155,49 @@ const ExperienceEngine = () => {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-black text-white selection:bg-purple-500/30">
-      {/* Background Cosmic Elements */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-900/20 blur-[120px] rounded-full animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/20 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20" />
-      </div>
+      {/* Background Cosmic Elements — hidden for immersive scenes */}
+      {!isImmersiveScene && (
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-900/20 blur-[120px] rounded-full animate-pulse" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/20 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20" />
+        </div>
+      )}
 
-      {/* Progress Bar */}
-      <div className="fixed top-0 left-0 w-full h-1 bg-white/5 z-50">
-        <motion.div
-          className="h-full bg-gradient-to-r from-purple-500 to-blue-500"
-          initial={{ width: 0 }}
-          animate={{ width: `${((currentStep + 1) / experience.steps.length) * 100}%` }}
-          transition={{ type: 'spring', stiffness: 50 }}
-        />
-      </div>
+      {/* Progress Bar — subtle gold for immersive scenes */}
+      {!isImmersiveScene ? (
+        <div className="fixed top-0 left-0 w-full h-1 bg-white/5 z-50">
+          <motion.div
+            className="h-full bg-gradient-to-r from-purple-500 to-blue-500"
+            initial={{ width: 0 }}
+            animate={{ width: `${((currentStep + 1) / experience.steps.length) * 100}%` }}
+            transition={{ type: 'spring', stiffness: 50 }}
+          />
+        </div>
+      ) : (
+        <div className="fixed top-0 left-0 w-full h-[2px] bg-transparent z-50">
+          <motion.div
+            className="h-full bg-gradient-to-r from-[#D4AF37]/40 to-[#FFD700]/20"
+            initial={{ width: 0 }}
+            animate={{ width: `${((currentStep + 1) / experience.steps.length) * 100}%` }}
+            transition={{ type: 'spring', stiffness: 50 }}
+          />
+        </div>
+      )}
 
-      <main className="relative z-10">
-        <AnimatePresence mode="wait">
-          <React.Fragment key={currentStep}>
+      <main className="relative z-10 min-h-screen">
+        <AnimatePresence mode="wait" key={currentStep}>
             {renderStep()}
-          </React.Fragment>
         </AnimatePresence>
       </main>
 
-      {/* Branding */}
-      <div className="fixed bottom-6 left-6 z-50 opacity-20 hover:opacity-100 transition-opacity cursor-default select-none">
-        <span className="text-xs tracking-[0.4em] font-light uppercase">Husike</span>
+      {/* Branding — more subtle for immersive scenes */}
+      <div className={`fixed bottom-6 left-6 z-50 hover:opacity-100 transition-opacity cursor-default select-none ${
+        isImmersiveScene ? 'opacity-10' : 'opacity-20'
+      }`}>
+        <span className={`text-xs tracking-[0.4em] font-light uppercase ${
+          isImmersiveScene ? 'text-[#D4AF37]/50' : 'text-white'
+        }`}>Husike</span>
       </div>
     </div>
   );

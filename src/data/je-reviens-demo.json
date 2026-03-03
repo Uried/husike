@@ -1,0 +1,98 @@
+{
+  "id": "je-reviens-demo",
+  "experienceType": "collier-promesse",
+  "experienceName": "Je Reviens",
+  "startDate": "2026-03-02T00:00:00Z",
+  "recipientName": "Amina",
+  "senderName": "Karim",
+  "secretNickname": "ma lune",
+  "dailyMessages": [
+    "Aujourd'hui, le ciel m'a rappelé tes yeux.",
+    "La distance n'est qu'un mot. Toi, tu es mon univers.",
+    "Chaque battement me rapproche de toi.",
+    "Tu me manques… mais ce manque me prouve que c'est réel.",
+    "Je compte les étoiles. Chacune porte ton nom."
+  ],
+  "steps": [
+    {
+      "type": "scene1-opening",
+      "recipientName": "Amina",
+      "voiceLine": "Si tu entends ceci… c'est que tu as mis le collier."
+    },
+    {
+      "type": "scene2-verification",
+      "voiceLine": "Si c'est vraiment toi… écris le surnom que je te donne quand personne ne regarde.",
+      "secretNickname": "ma lune",
+      "errorMessage": "Hmm… essaie encore mon amour.",
+      "successVoiceLine": "C'est bien toi…"
+    },
+    {
+      "type": "scene3-universe",
+      "voiceLine": "Suis-moi.",
+      "stages": [
+        {
+          "id": "past",
+          "label": "Le Passé",
+          "voiceLine": "C'est ici que tout a commencé.",
+          "description": "Notre premier regard. Ce jour où le monde s'est arrêté.",
+          "media": {
+            "type": "image",
+            "url": "/media/je-reviens-demo/moment1.jpg",
+            "alt": "Notre premier moment"
+          }
+        },
+        {
+          "id": "present",
+          "label": "Le Présent",
+          "voiceLine": "Je pars… mais je ne m'éloigne pas de toi.",
+          "description": "Cette distance n'est qu'une illusion. Mon cœur reste.",
+          "media": {
+            "type": "video",
+            "url": "/media/je-reviens-demo/message-depart.mp4",
+            "alt": "Message avant le départ"
+          }
+        },
+        {
+          "id": "future",
+          "label": "Le Futur",
+          "voiceLine": "Je reviens te chercher. Et ce jour-là…",
+          "description": "Une maison. Un jardin. Toi et moi. Pour toujours.",
+          "media": null
+        }
+      ]
+    },
+    {
+      "type": "scene4-intimate",
+      "voiceLine": "Pose ton doigt ici.",
+      "revealMessage": "Peu importe la distance… tu es là.",
+      "senderName": "Karim"
+    },
+    {
+      "type": "scene5-timemessages",
+      "messages": [
+        {
+          "id": "msg-3months",
+          "label": "Dans 3 mois",
+          "unlockDate": "2026-06-02T00:00:00Z",
+          "content": "Trois mois déjà… et tu es toujours la première pensée de chaque matin.",
+          "icon": "🌙"
+        },
+        {
+          "id": "msg-1year",
+          "label": "Dans 1 an",
+          "unlockDate": "2027-03-02T00:00:00Z",
+          "content": "Un an. 365 jours. Et chaque jour, je t'ai aimée un peu plus.",
+          "icon": "⭐"
+        },
+        {
+          "id": "msg-return",
+          "label": "Le jour où je rentre",
+          "unlockDate": "2027-09-01T00:00:00Z",
+          "content": "Je suis là. Regarde par la fenêtre.",
+          "icon": "🏠"
+        }
+      ],
+      "dailyMessagePrompt": "Pensée du jour"
+    }
+  ]
+}
