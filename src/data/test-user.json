@@ -1,0 +1,83 @@
+{
+  "id": "test-user",
+  "experienceType": "collier-promesse",
+  "experienceName": "Test Expérience",
+  "startDate": "2026-03-05T00:00:00Z",
+  "recipientName": "Marie",
+  "senderName": "Thomas",
+  "secretNickname": "mon coeur",
+  "dailyMessages": [
+    "Tu me manques aujourd'hui.",
+    "Chaque jour, je pense à toi.",
+    "La distance n'est rien face à notre amour."
+  ],
+  "steps": [
+    {
+      "type": "intro",
+      "prompt": "Une expérience t'attend.",
+      "buttonText": "Commencer"
+    },
+    {
+      "type": "scene1-opening",
+      "recipientName": "Marie",
+      "voiceLine": "Bienvenue dans cette expérience."
+    },
+    {
+      "type": "scene2-verification",
+      "voiceLine": "Prouve que c'est bien toi.",
+      "secretNickname": "mon coeur",
+      "errorMessage": "Ce n'est pas le bon mot...",
+      "successVoiceLine": "C'est toi !"
+    },
+    {
+      "type": "scene3-universe",
+      "voiceLine": "Explore notre histoire.",
+      "stages": [
+        {
+          "id": "moment1",
+          "label": "Premier moment",
+          "voiceLine": "Notre rencontre.",
+          "description": "Le jour où tout a changé."
+        },
+        {
+          "id": "moment2",
+          "label": "Aujourd'hui",
+          "voiceLine": "Nous sommes séparés mais ensemble.",
+          "description": "La distance n'est qu'une épreuve."
+        },
+        {
+          "id": "moment3",
+          "label": "Demain",
+          "voiceLine": "Notre avenir nous attend.",
+          "description": "Bientôt réunis."
+        }
+      ]
+    },
+    {
+      "type": "scene4-intimate",
+      "voiceLine": "Pose ton doigt sur l'écran.",
+      "revealMessage": "Tu es toujours dans mon cœur.",
+      "senderName": "Thomas"
+    },
+    {
+      "type": "scene5-timemessages",
+      "messages": [
+        {
+          "id": "msg1",
+          "label": "Dans 1 semaine",
+          "unlockDate": "2026-03-12T00:00:00Z",
+          "content": "Une semaine déjà... tu me manques.",
+          "icon": "💌"
+        },
+        {
+          "id": "msg2",
+          "label": "Dans 1 mois",
+          "unlockDate": "2026-04-05T00:00:00Z",
+          "content": "Un mois sans toi, mais bientôt ensemble.",
+          "icon": "❤️"
+        }
+      ],
+      "dailyMessagePrompt": "Message du jour"
+    }
+  ]
+}

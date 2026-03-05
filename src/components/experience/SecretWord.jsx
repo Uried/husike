@@ -1,112 +1,135 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { gsap } from 'gsap';
 import { HelpCircle, ChevronRight } from 'lucide-react';
 
 const SecretWord = ({ data, onNext }) => {
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [showHint, setShowHint] = useState(false);
-  const [inputValue, setInputValue] = useState("");
-  const [error, setError] = useState(false);
+  const containerRef = useRef(null);
+  const lockedRef    = useRef(null);
+  const inputRef     = useRef(null);
+  const hintRef      = useRef(null);
+  const unlockedRef  = useRef(null);
+  const wordRef      = useRef(null);
+  const nextBtnRef   = useRef(null);
 
-  const handleUnlock = () => {
-    if (inputValue.toUpperCase() === data.secretWord.toUpperCase()) {
-      setIsUnlocked(true);
-      setError(false);
-    } else {
-      setError(true);
-      setTimeout(() => setError(false), 1200);
+  const [inputValue, setInputValue] = useState('');
+  const [showHint,   setShowHint]   = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+
+  useEffect(() => {
+    const tl = gsap.timeline();
+    tl.fromTo(containerRef.current, { opacity: 0 }, { opacity: 1, duration: 1 })
+      .fromTo(lockedRef.current, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 1.2, ease: 'power2.out' }, 0.4);
+    return () => tl.kill();
+  }, []);
+
+  const toggleHint = () => {
+    const next = !showHint;
+    setShowHint(next);
+    if (hintRef.current) {
+      if (next) {
+        gsap.fromTo(hintRef.current,
+          { opacity: 0, height: 0 },
+          { opacity: 1, height: 'auto', duration: 0.4, ease: 'power2.out' },
+        );
+      } else {
+        gsap.to(hintRef.current, { opacity: 0, height: 0, duration: 0.3, ease: 'power2.in' });
+      }
     }
   };
 
+  const handleUnlock = useCallback(() => {
+    if (inputValue.toUpperCase() === data.secretWord.toUpperCase()) {
+      gsap.to(lockedRef.current, { opacity: 0, scale: 0.9, duration: 0.5, ease: 'power2.in',
+        onComplete: () => {
+          setIsUnlocked(true);
+          gsap.fromTo(unlockedRef.current,
+            { opacity: 0, scale: 0.88 },
+            { opacity: 1, scale: 1,    duration: 1, ease: 'back.out(1.3)' },
+          );
+          gsap.fromTo(nextBtnRef.current,
+            { opacity: 0 }, { opacity: 1, duration: 0.8, delay: 0.8 },
+          );
+        },
+      });
+    } else {
+      gsap.to(inputRef.current, {
+        x: [-8, 8, -6, 6, -3, 3, 0], duration: 0.45, ease: 'power2.inOut',
+      });
+    }
+  }, [inputValue, data.secretWord]);
+
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="flex flex-col items-center justify-center min-h-screen p-6 space-y-12"
-    >
-      <AnimatePresence mode="wait">
-        {!isUnlocked ? (
-          <motion.div
-            key="locked"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="w-full max-w-sm text-center space-y-10"
-          >
-            <p className="text-2xl text-white/70 font-light tracking-wide">{data.prompt}</p>
-            
-            <div className="relative">
-              <motion.input
-                animate={{ x: error ? [-5, 5, -5, 5, 0] : 0 }}
-                transition={{ duration: 0.5 }}
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
-                placeholder="••••••••"
-                className={`w-full bg-transparent border-b ${error ? 'border-red-500/70' : 'border-white/20'} pb-3 text-center text-3xl tracking-[0.5em] text-white placeholder:text-white/10 focus:outline-none focus:border-purple-400 transition-all uppercase`}
-              />
-            </div>
+    <div ref={containerRef}
+         className="flex flex-col items-center justify-center min-h-screen p-6 gap-12"
+         style={{ opacity: 0 }}>
 
-            <div className="flex flex-col items-center space-y-6 pt-4">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleUnlock}
-                className="px-10 py-3 rounded-full bg-white text-black font-semibold tracking-widest uppercase text-xs shadow-lg shadow-white/10"
-              >
-                Révéler
-              </motion.button>
+      {/* Locked state */}
+      {!isUnlocked && (
+        <div ref={lockedRef} className="w-full max-w-sm text-center space-y-10" style={{ opacity: 0 }}>
+          <p className="text-2xl text-white/65 font-light tracking-wide"
+             style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+            {data.prompt}
+          </p>
 
-              <button 
-                onClick={() => setShowHint(!showHint)}
-                className="flex items-center space-x-2 text-white/30 hover:text-white/60 transition-colors text-[10px] uppercase tracking-widest"
-              >
-                <HelpCircle className="w-3 h-3" />
-                <span>Indice</span>
-              </button>
+          <div>
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={e => setInputValue(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleUnlock()}
+              placeholder="••••••••"
+              autoComplete="off" spellCheck="false"
+              className="w-full bg-transparent border-b border-white/20 pb-3 text-center text-3xl tracking-[0.5em] text-white placeholder:text-white/10 focus:outline-none focus:border-[#D4AF37]/40 transition-colors uppercase"
+            />
+          </div>
 
-              <AnimatePresence>
-                {showHint && (
-                  <motion.p
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="text-gray-500 italic text-sm font-serif"
-                  >
-                    "{data.hint}"
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="unlocked"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center space-y-8 text-center"
-          >
-            <p className="text-lg text-white/50">Le mot secret est</p>
-            <h3 className="text-6xl font-light text-purple-300 tracking-[0.3em] ml-[0.3em] uppercase">
-              {data.secretWord}
-            </h3>
-            <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              whileHover={{ x: 5 }}
-              onClick={onNext}
-              className="flex items-center space-x-3 text-white/40 hover:text-white transition-all uppercase tracking-[0.3em] text-[10px] pt-12 group"
+          <div className="flex flex-col items-center gap-5">
+            <button
+              onClick={handleUnlock}
+              className="px-10 py-3 rounded-full border border-[#D4AF37]/25 text-[#D4AF37]/70 text-xs tracking-[0.35em] uppercase hover:bg-[#D4AF37]/8 hover:border-[#D4AF37]/50 hover:text-[#D4AF37] transition-all duration-300"
             >
-              <span>Écouter le message</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </motion.button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+              Révéler
+            </button>
+
+            <button
+              onClick={toggleHint}
+              className="flex items-center gap-2 text-white/30 hover:text-white/55 transition-colors text-[10px] uppercase tracking-widest"
+            >
+              <HelpCircle className="w-3 h-3" />
+              <span>Indice</span>
+            </button>
+
+            <div ref={hintRef} style={{ overflow: 'hidden', height: 0, opacity: 0 }}>
+              <p className="text-white/35 italic text-sm"
+                 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+                "{data.hint}"
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unlocked state */}
+      <div ref={unlockedRef}
+           className={`flex flex-col items-center gap-8 text-center ${isUnlocked ? '' : 'hidden'}`}
+           style={{ opacity: 0 }}>
+        <p className="text-lg text-white/40">Le mot secret est</p>
+        <h3 className="text-5xl font-light tracking-[0.35em] ml-[0.35em] uppercase text-gold-gradient"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+          {data.secretWord}
+        </h3>
+        <button
+          ref={nextBtnRef}
+          onClick={onNext}
+          className="flex items-center gap-3 text-white/35 hover:text-white transition-all uppercase tracking-[0.3em] text-[10px] pt-10 group"
+          style={{ opacity: 0 }}
+        >
+          <span>Écouter le message</span>
+          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        </button>
+      </div>
+    </div>
   );
 };
 
