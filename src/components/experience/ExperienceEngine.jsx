@@ -10,9 +10,11 @@ import WaitingMode from './WaitingMode';
 
 import Scene1Opening from './Scene1Opening';
 import Scene2Verification from './Scene2Verification';
-import Scene3Universe from './Scene3Universe';
+import Scene3Journey from './Scene3Journey';
 import Scene4Intimate from './Scene4Intimate';
 import Scene5TimeMessages from './Scene5TimeMessages';
+import CosmosBackground from './CosmosBackground';
+import { getDailyMood } from './DailyMood';
 
 const dataModules = import.meta.glob('/src/data/*.json');
 
@@ -94,13 +96,32 @@ const ExperienceEngine = () => {
     gsap.to(progressRef.current, { width: `${pct}%`, duration: 0.6, ease: 'power2.out' });
   }, [currentStep, experience]);
 
+  const mood = getDailyMood();
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen text-white bg-black">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-full border border-[#D4AF37]/30 border-t-[#D4AF37] animate-spin" />
-          <p className="text-xs tracking-[0.4em] uppercase text-[#D4AF37]/40">Connexion à votre Husike…</p>
+        <CosmosBackground />
+        <div className="relative z-10 flex flex-col items-center gap-6">
+          {/* Breathing orb */}
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full blur-xl"
+                 style={{ background: `${mood.primaryColor}20`, animation: 'breathePulse 2s ease-in-out infinite' }}/>
+            <div className="w-14 h-14 rounded-full border flex items-center justify-center"
+                 style={{ borderColor: `${mood.primaryColor}30`, background: 'rgba(0,0,0,0.6)' }}>
+              <div className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin"
+                   style={{ borderColor: `${mood.primaryColor}60`, borderTopColor: 'transparent' }}/>
+            </div>
+          </div>
+          <p className="text-xs tracking-[0.5em] uppercase"
+             style={{ color: `${mood.primaryColor}50` }}>
+            Connexion à votre univers…
+          </p>
+          <p className="text-[9px] tracking-[0.3em] uppercase text-white/15 animate-pulse">
+            {mood.label}
+          </p>
         </div>
+        <style>{`@keyframes breathePulse { 0%,100% { transform:scale(1); opacity:0.3; } 50% { transform:scale(1.4); opacity:0.7; } }`}</style>
       </div>
     );
   }
@@ -108,12 +129,15 @@ const ExperienceEngine = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen text-white bg-black p-6">
-        <div className="max-w-md text-center space-y-8 p-10 rounded-3xl bg-white/[0.03] border border-[#D4AF37]/10 backdrop-blur-xl">
-          <div className="text-5xl" style={{ filter: 'drop-shadow(0 0 16px #D4AF37)' }}>✦</div>
+        <CosmosBackground />
+        <div className="relative z-10 max-w-md text-center space-y-8 p-10 rounded-3xl backdrop-blur-xl"
+             style={{ background: 'rgba(0,0,0,0.5)', border: `1px solid ${mood.primaryColor}15` }}>
+          <div className="text-5xl" style={{ filter: `drop-shadow(0 0 16px ${mood.primaryColor})` }}>✦</div>
           <p className="text-white/50 font-light text-lg leading-relaxed">{error}</p>
           <button
             onClick={() => navigate('/')}
-            className="px-8 py-3 rounded-full border border-[#D4AF37]/20 text-[#D4AF37]/60 text-xs tracking-[0.3em] uppercase hover:border-[#D4AF37]/50 hover:text-[#D4AF37] transition-all"
+            className="px-8 py-3 rounded-full text-xs tracking-[0.3em] uppercase transition-all"
+            style={{ border: `1px solid ${mood.primaryColor}20`, color: `${mood.primaryColor}60` }}
           >
             Retour à l'accueil
           </button>
@@ -135,7 +159,7 @@ const ExperienceEngine = () => {
       case 'waiting':            return <WaitingMode data={stepData} onBack={handlePrevious} />;
       case 'scene1-opening':     return <Scene1Opening data={stepData} onNext={handleNext} />;
       case 'scene2-verification':return <Scene2Verification data={stepData} onNext={handleNext} />;
-      case 'scene3-universe':    return <Scene3Universe data={stepData} onNext={handleNext} />;
+      case 'scene3-universe':    return <Scene3Journey data={stepData} onNext={handleNext} />;
       case 'scene4-intimate':    return <Scene4Intimate data={stepData} onNext={handleNext} />;
       case 'scene5-timemessages':return <Scene5TimeMessages data={stepData} dailyMessage={dailyMessage} />;
       default:                   return null;
@@ -144,35 +168,33 @@ const ExperienceEngine = () => {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-black text-white">
-      {/* Gold progress bar */}
-      <div className="fixed top-0 left-0 w-full z-50" style={{ height: isImmersive ? '2px' : '3px', background: 'rgba(255,255,255,0.04)' }}>
+      {/* Persistent cosmos — always behind everything */}
+      {!isImmersive && <CosmosBackground />}
+
+      {/* Mood-colored progress bar */}
+      <div className="fixed top-0 left-0 w-full z-50"
+           style={{ height: isImmersive ? '1.5px' : '2px', background: 'rgba(255,255,255,0.03)' }}>
         <div
           ref={progressRef}
           style={{
             height: '100%',
             width: '0%',
             background: isImmersive
-              ? 'linear-gradient(90deg, rgba(212,175,55,0.5), rgba(255,215,0,0.25))'
-              : 'linear-gradient(90deg, #D4AF37, #FFD700)',
+              ? `linear-gradient(90deg, ${mood.primaryColor}60, ${mood.accentColor}30)`
+              : `linear-gradient(90deg, ${mood.primaryColor}, ${mood.accentColor})`,
+            boxShadow: `0 0 8px ${mood.primaryColor}40`,
           }}
         />
       </div>
-
-      {/* Ambient nebula — only for non-immersive steps */}
-      {!isImmersive && (
-        <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute top-[-15%] left-[-15%] w-[50%] h-[50%] bg-[#D4AF37]/[0.04] blur-[140px] rounded-full" />
-          <div className="absolute bottom-[-15%] right-[-15%] w-[50%] h-[50%] bg-[#D4AF37]/[0.03] blur-[140px] rounded-full" />
-        </div>
-      )}
 
       <main ref={wrapperRef} className="relative z-10 min-h-screen">
         {renderStep()}
       </main>
 
       {/* Husike watermark */}
-      <div className={`fixed bottom-5 left-5 z-50 select-none transition-opacity duration-700 ${isImmersive ? 'opacity-[0.08]' : 'opacity-[0.18]'}`}>
-        <span className="text-[10px] tracking-[0.5em] font-light uppercase text-[#D4AF37]">Husike</span>
+      <div className={`fixed bottom-5 left-5 z-50 select-none transition-opacity duration-700 ${isImmersive ? 'opacity-[0.06]' : 'opacity-[0.15]'}`}>
+        <span className="text-[9px] tracking-[0.6em] font-light uppercase"
+              style={{ color: mood.primaryColor }}>Husike</span>
       </div>
     </div>
   );

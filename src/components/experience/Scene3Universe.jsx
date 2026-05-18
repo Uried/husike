@@ -4,17 +4,18 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass }    from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { gsap } from 'gsap';
+import { getDailyMood } from './DailyMood';
 
 // ── Curve & constants ─────────────────────────────────────────────────────────
 const CTRL_PTS = [
   new THREE.Vector3( 0,    5,    0),
-  new THREE.Vector3(-2.5,  3,   -2),
-  new THREE.Vector3( 1,    1,   -4),
-  new THREE.Vector3( 2.5, -1,   -6),
-  new THREE.Vector3( 0,   -3,   -8),
-  new THREE.Vector3(-2.5, -5.5,-10),
-  new THREE.Vector3( 0.5, -7.5,-12),
-  new THREE.Vector3( 0,   -9,  -13),
+  new THREE.Vector3(-3,    3,   -3),
+  new THREE.Vector3( 1.5,  1,   -6),
+  new THREE.Vector3( 3,   -1,   -9),
+  new THREE.Vector3( 0,   -4,  -12),
+  new THREE.Vector3(-3,   -6.5,-15),
+  new THREE.Vector3( 1,   -8.5,-18),
+  new THREE.Vector3( 0,  -11,  -21),
 ];
 const CURVE         = new THREE.CatmullRomCurve3(CTRL_PTS, false, 'catmullrom', 0.5);
 const STAGE_PCTS    = [0.28, 0.58, 0.88];
@@ -49,24 +50,74 @@ function makeTrailMaterial() {
   });
 }
 
-// ── Star field ────────────────────────────────────────────────────────────────
-function makeStarField() {
+// ── Star field with shimmer ────────────────────────────────────────────────────────────────
+function makeStarField(mood) {
   const geo  = new THREE.BufferGeometry();
-  const verts = [];
-  for (let i = 0; i < 3500; i++) {
-    verts.push(
-      (Math.random() - 0.5) * 300,
-      (Math.random() - 0.5) * 300,
-      (Math.random() - 0.5) * 300,
-    );
+  const verts = [], sizes = [], phases = [];
+  for (let i = 0; i < 5000; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi   = Math.acos(2 * Math.random() - 1);
+    const r     = 80 + Math.random() * 250;
+    verts.push(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
+    sizes.push(0.04 + Math.random() * 0.18);
+    phases.push(Math.random() * Math.PI * 2);
   }
   geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  geo.setAttribute('aSize',    new THREE.Float32BufferAttribute(sizes, 1));
+  geo.setAttribute('aPhase',   new THREE.Float32BufferAttribute(phases, 1));
+
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      attribute float aSize;
+      attribute float aPhase;
+      uniform float uTime;
+      varying float vAlpha;
+      void main() {
+        vAlpha = 0.4 + 0.6 * sin(uTime * 0.8 + aPhase);
+        gl_PointSize = aSize * vAlpha * (300.0 / -(modelViewMatrix * vec4(position,1.0)).z);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      varying float vAlpha;
+      void main() {
+        float d = distance(gl_PointCoord, vec2(0.5));
+        if (d > 0.5) discard;
+        gl_FragColor = vec4(1.0, 1.0, 1.0, smoothstep(0.5,0.0,d) * vAlpha * 0.7);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const pts = new THREE.Points(geo, mat);
+  pts.userData.starMat = mat;
+  return pts;
+}
+
+// ── Nebula cloud ────────────────────────────────────────────────────────────────
+function makeNebulaCloud(position, color, size, opacity) {
+  const COUNT = 300;
+  const verts = [], sizes = [], alphas = [];
+  for (let i = 0; i < COUNT; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi   = Math.acos(2 * Math.random() - 1);
+    const r     = Math.random() * size;
+    verts.push(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
+    sizes.push(0.3 + Math.random() * 1.2);
+    alphas.push(Math.random());
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  geo.setAttribute('aSize',    new THREE.Float32BufferAttribute(sizes, 1));
   const mat = new THREE.PointsMaterial({
-    color: 0xffffff, size: 0.08,
-    transparent: true, opacity: 0.55,
+    color, size: 0.8, transparent: true, opacity,
     blending: THREE.AdditiveBlending, depthWrite: false,
   });
-  return new THREE.Points(geo, mat);
+  const pts = new THREE.Points(geo, mat);
+  pts.position.copy(position);
+  return pts;
 }
 
 // ── Waypoint (torus ring + node sphere) ──────────────────────────────────────
@@ -113,72 +164,124 @@ const Scene3Universe = ({ data, onNext }) => {
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
+    const mood = getDailyMood();
 
     // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 1.1;
     mount.appendChild(renderer.domElement);
 
     // Scene + camera
     const scene  = new THREE.Scene();
-    scene.fog    = new THREE.Fog(0x000000, 30, 200);
-    const camera = new THREE.PerspectiveCamera(52, mount.clientWidth / mount.clientHeight, 0.1, 500);
+    scene.fog    = new THREE.FogExp2(0x000000, mood.fogDensity * 0.5);
+    const camera = new THREE.PerspectiveCamera(56, mount.clientWidth / mount.clientHeight, 0.1, 600);
     camera.position.set(0, 7, 10);
 
     // Ambient light
-    scene.add(new THREE.AmbientLight(0x0d0520, 0.08));
+    scene.add(new THREE.AmbientLight(0x0d0520, 0.1));
 
-    // Stars
-    scene.add(makeStarField());
+    // Stars with shimmer
+    const starField = makeStarField(mood);
+    scene.add(starField);
+
+    // Nebula clouds scattered along the path
+    const [nr, ng, nb] = mood.nebulaColor.split(',').map(Number);
+    const nebulaColor = new THREE.Color(nr/255, ng/255, nb/255);
+    scene.add(makeNebulaCloud(new THREE.Vector3(-5, 0, -8),  nebulaColor, 8, 0.12));
+    scene.add(makeNebulaCloud(new THREE.Vector3( 6, -2, -14), new THREE.Color('#D4AF37'), 6, 0.08));
+    scene.add(makeNebulaCloud(new THREE.Vector3(-4, -6, -18), nebulaColor, 7, 0.1));
 
     // Tube path with trail shader
     const trailMat = makeTrailMaterial();
-    const tubeGeo  = new THREE.TubeGeometry(CURVE, 300, 0.013, 8, false);
+    const tubeGeo  = new THREE.TubeGeometry(CURVE, 400, 0.015, 8, false);
     const tube     = new THREE.Mesh(tubeGeo, trailMat);
     scene.add(tube);
 
-    // Orb
+    // Orb (the spirit guide)
     const orbGroup = new THREE.Group();
     const orbMesh  = new THREE.Mesh(
-      new THREE.SphereGeometry(0.07, 20, 20),
-      new THREE.MeshStandardMaterial({ color: GOLD_BRIGHT, emissive: GOLD_BRIGHT, emissiveIntensity: 3, roughness: 0, metalness: 1 }),
+      new THREE.SphereGeometry(0.09, 24, 24),
+      new THREE.MeshStandardMaterial({ color: GOLD_BRIGHT, emissive: GOLD_BRIGHT, emissiveIntensity: 4, roughness: 0, metalness: 1 }),
     );
     const orbCore  = new THREE.Mesh(
-      new THREE.SphereGeometry(0.025, 8, 8),
+      new THREE.SphereGeometry(0.03, 8, 8),
       new THREE.MeshBasicMaterial({ color: 0xffffff }),
     );
-    const orbLight = new THREE.PointLight(GOLD_COLOR, 4, 6);
-    orbGroup.add(orbMesh, orbCore, orbLight);
+    const orbLight = new THREE.PointLight(GOLD_COLOR, 6, 8);
+    const orbTrail = new THREE.Mesh(
+      new THREE.SphereGeometry(0.18, 12, 12),
+      new THREE.MeshBasicMaterial({ color: GOLD_COLOR, transparent: true, opacity: 0.08, depthWrite: false }),
+    );
+    orbGroup.add(orbMesh, orbCore, orbLight, orbTrail);
     scene.add(orbGroup);
 
-    // Orb glow sphere (larger, transparent)
+    // Orb glow sphere
     const orbGlow = new THREE.Mesh(
-      new THREE.SphereGeometry(0.22, 16, 16),
-      new THREE.MeshBasicMaterial({ color: GOLD_COLOR, transparent: true, opacity: 0.1, depthWrite: false }),
+      new THREE.SphereGeometry(0.35, 16, 16),
+      new THREE.MeshBasicMaterial({ color: GOLD_COLOR, transparent: true, opacity: 0.07, depthWrite: false }),
     );
     scene.add(orbGlow);
 
-    // Waypoints
-    const waypoints = STAGE_PCTS.map(p => {
+    // Waypoints — rings + floating memory particles
+    const waypoints = STAGE_PCTS.map((p, idx) => {
       const pos = CURVE.getPoint(p);
       const wp  = makeWaypoint(pos);
       scene.add(wp.group);
+
+      // Memory particle halo around each waypoint
+      const haloGeo = new THREE.BufferGeometry();
+      const hVerts  = [];
+      for (let j = 0; j < 60; j++) {
+        const a = (j / 60) * Math.PI * 2;
+        const r = 0.6 + Math.random() * 0.3;
+        hVerts.push(pos.x + r * Math.cos(a), pos.y + r * Math.sin(a) * 0.3, pos.z + r * Math.sin(a));
+      }
+      haloGeo.setAttribute('position', new THREE.Float32BufferAttribute(hVerts, 3));
+      const haloMat = new THREE.PointsMaterial({
+        color: GOLD_COLOR, size: 0.04, transparent: true, opacity: 0,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      });
+      const halo = new THREE.Points(haloGeo, haloMat);
+      scene.add(halo);
+      wp.halo = halo;
+      wp.haloMat = haloMat;
       return wp;
     });
 
+    // Shooting star pool
+    const shootingStars = [];
+    let ssTick = 0;
+    const spawnShootingStar = () => {
+      const start = new THREE.Vector3(
+        (Math.random() - 0.5) * 60, 20 + Math.random() * 10, -20 + Math.random() * 10
+      );
+      const dir = new THREE.Vector3(
+        (Math.random() - 0.5) * 0.5, -1 - Math.random() * 0.5, -0.3
+      ).normalize();
+      const pts = [];
+      for (let i = 0; i <= 12; i++) pts.push(start.clone().addScaledVector(dir, i * 2));
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const mat = new THREE.LineBasicMaterial({
+        color: 0xffffff, transparent: true, opacity: 0,
+        blending: THREE.AdditiveBlending, linewidth: 1,
+      });
+      const line = new THREE.Line(geo, mat);
+      scene.add(line);
+      gsap.to(mat, { opacity: 0.85, duration: 0.25 })
+          .then(() => gsap.to(mat, { opacity: 0, duration: 0.4 }))
+          .then(() => { scene.remove(line); geo.dispose(); mat.dispose(); });
+    };
+
     // Post-processing — UnrealBloom
-    const composer   = new EffectComposer(renderer);
+    const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    const bloomPass   = new UnrealBloomPass(
+    const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(mount.clientWidth, mount.clientHeight),
-      1.4, 0.45, 0.82,
+      mood.bloomStrength, 0.5, 0.75,
     );
-    bloomPass.threshold = 0.18;
-    bloomPass.strength  = 1.3;
-    bloomPass.radius    = 0.5;
     composer.addPass(bloomPass);
 
     // Resize handler
@@ -198,28 +301,51 @@ const Scene3Universe = ({ data, onNext }) => {
 
     const animate = () => {
       rafId = requestAnimationFrame(animate);
-      const p    = Math.min(progressRef.current, 0.999);
+      const t  = Date.now() * 0.001;
+      const p  = Math.min(progressRef.current, 0.999);
       const orbPt = CURVE.getPoint(p);
       const tang  = CURVE.getTangent(p).normalize();
 
+      // Update star shimmer
+      if (starField.userData.starMat) {
+        starField.userData.starMat.uniforms.uTime.value = t;
+      }
+
+      // Rotate star field slowly
+      starField.rotation.y += 0.00008;
+
       // Orb & glow follow curve
-      orbGroup.position.lerp(orbPt, 0.12);
-      orbGlow.position.lerp(orbPt, 0.12);
-      const pulse = 1 + Math.sin(Date.now() * 0.003) * 0.35;
+      orbGroup.position.lerp(orbPt, 0.1);
+      orbGlow.position.lerp(orbPt, 0.1);
+      const pulse = 1 + Math.sin(t * 1.8) * 0.4;
       orbGlow.scale.setScalar(pulse);
+      orbLight.intensity = 5 + Math.sin(t * 2) * 2;
 
       // Update trail shader
       trailMat.uniforms.uProgress.value = p;
 
-      // Rotate reached waypoint rings
-      waypoints.forEach(wp => { wp.ring.rotation.z += 0.012; });
+      // Waypoints: rotate rings, pulse halo on active
+      waypoints.forEach((wp, i) => {
+        wp.ring.rotation.z += 0.008 + i * 0.004;
+        const stageActive = p >= STAGE_PCTS[i] - 0.04;
+        if (stageActive && wp.haloMat.opacity < 0.5) {
+          wp.haloMat.opacity = Math.min(wp.haloMat.opacity + 0.02, 0.5);
+          wp.light.intensity = Math.min(wp.light.intensity + 0.1, 2);
+        }
+      });
 
-      // Camera follows orb from behind + above
-      const behind = tang.clone().multiplyScalar(-5);
-      targetPos.copy(orbPt).add(behind).add(new THREE.Vector3(0, 2.2, 0));
-      camPos.lerp(targetPos, 0.03);
+      // Shooting stars (every ~240 frames at mood frequency)
+      ssTick++;
+      const ssRate = mood.shootingStarFrequency === 'high' ? 180 : mood.shootingStarFrequency === 'medium' ? 360 : 600;
+      if (ssTick % ssRate < 3 && Math.random() > 0.7) spawnShootingStar();
+
+      // Camera follows orb from behind + above with gentle sway
+      const sway  = Math.sin(t * 0.3) * 0.4;
+      const behind = tang.clone().multiplyScalar(-5.5);
+      targetPos.copy(orbPt).add(behind).add(new THREE.Vector3(sway, 2.5, 0));
+      camPos.lerp(targetPos, 0.025);
       camera.position.copy(camPos);
-      CURVE.getPoint(Math.min(p + 0.07, 0.999), lookPt);
+      CURVE.getPoint(Math.min(p + 0.06, 0.999), lookPt);
       camera.lookAt(lookPt);
 
       composer.render();
@@ -227,7 +353,7 @@ const Scene3Universe = ({ data, onNext }) => {
     animate();
 
     // ── Entrance fade-in
-    gsap.fromTo(renderer.domElement, { opacity: 0 }, { opacity: 1, duration: 1.8 });
+    gsap.fromTo(renderer.domElement, { opacity: 0 }, { opacity: 1, duration: 2.2 });
 
     return () => {
       cancelAnimationFrame(rafId);

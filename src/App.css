@@ -1,38 +1,64 @@
-.App {
-  text-align: center;
+/* ── Husike Cosmic Universe — Global Animations ─────────────────────────────── */
+
+@keyframes cosmicFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-8px) rotate(1deg); }
+  66%       { transform: translateY(4px) rotate(-0.5deg); }
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+@keyframes orbPulse {
+  0%, 100% { box-shadow: 0 0 20px 4px rgba(212,175,55,0.3), 0 0 60px 8px rgba(212,175,55,0.1); }
+  50%       { box-shadow: 0 0 40px 8px rgba(212,175,55,0.5), 0 0 100px 16px rgba(212,175,55,0.2); }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+@keyframes starShimmer {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 1; }
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+@keyframes ringExpand {
+  0%   { transform: translate(-50%, -50%) scale(1); opacity: 0.4; }
+  100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
 }
 
-.App-link {
-  color: #61dafb;
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.05; }
+  50%       { transform: scale(1.15); opacity: 0.15; }
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
+
+@keyframes glowPulse {
+  0%, 100% { filter: brightness(1) drop-shadow(0 0 8px rgba(212,175,55,0.4)); }
+  50%       { filter: brightness(1.3) drop-shadow(0 0 20px rgba(212,175,55,0.8)); }
+}
+
+@keyframes rotateOrbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14%       { transform: scale(1.12); }
+  28%       { transform: scale(1); }
+  42%       { transform: scale(1.08); }
+  70%       { transform: scale(1); }
+}
+
+@keyframes constellationReveal {
+  from { opacity: 0; stroke-dashoffset: 200; }
+  to   { opacity: 0.5; stroke-dashoffset: 0; }
+}
+
+/* Utility classes */
+.animate-cosmic-float  { animation: cosmicFloat 6s ease-in-out infinite; }
+.animate-orb-pulse     { animation: orbPulse 3s ease-in-out infinite; }
+.animate-star-shimmer  { animation: starShimmer 2s ease-in-out infinite; }
+.animate-ring-expand   { animation: ringExpand 2s ease-out forwards; }
+.animate-glow-pulse    { animation: glowPulse 2.5s ease-in-out infinite; }
+.animate-heartbeat     { animation: heartbeat 1.2s ease-in-out infinite; }
+.animate-rotate-orbit  { animation: rotateOrbit 8s linear infinite; }

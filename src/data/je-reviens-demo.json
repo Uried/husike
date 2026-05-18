@@ -17,47 +17,40 @@
     {
       "type": "scene1-opening",
       "recipientName": "Amina",
-      "voiceLine": "Si tu entends ceci… c'est que tu as mis le collier."
+      "secretNickname": "ma lune",
+      "voiceLine": "Ma chérie Amina… si c'est bien toi… c'est quoi notre code secret à nous deux ?",
+      "errorMessage": "Hmm… ce n'est pas ça mon amour.",
+      "successVoiceLine": "C'est bien toi… entre."
     },
     {
       "type": "scene2-verification",
-      "voiceLine": "Si c'est vraiment toi… écris le surnom que je te donne quand personne ne regarde.",
+      "voiceLine": "Prouve-moi encore une fois que c'est toi… dis-moi comment je t'appelle.",
       "secretNickname": "ma lune",
       "errorMessage": "Hmm… essaie encore mon amour.",
-      "successVoiceLine": "C'est bien toi…"
+      "successVoiceLine": "Je savais que c'était toi…"
     },
     {
       "type": "scene3-universe",
-      "voiceLine": "Suis-moi.",
+      "voiceLine": "Allez… monte. Je t'emmène à la plage où on s'est rencontrés.",
+      "destination": "La plage",
       "stages": [
         {
-          "id": "past",
-          "label": "Le Passé",
-          "voiceLine": "C'est ici que tout a commencé.",
-          "description": "Notre premier regard. Ce jour où le monde s'est arrêté.",
-          "media": {
-            "type": "image",
-            "url": "/media/je-reviens-demo/moment1.jpg",
-            "alt": "Notre premier moment"
-          }
+          "id": "cafe",
+          "label": "Le café du coin",
+          "voiceLine": "Tu te souviens ? C'est là qu'on a commandé le même café par hasard.",
+          "description": "Tu lisais un livre. Je t'ai regardée deux fois avant d'oser te parler."
         },
         {
-          "id": "present",
-          "label": "Le Présent",
-          "voiceLine": "Je pars… mais je ne m'éloigne pas de toi.",
-          "description": "Cette distance n'est qu'une illusion. Mon cœur reste.",
-          "media": {
-            "type": "video",
-            "url": "/media/je-reviens-demo/message-depart.mp4",
-            "alt": "Message avant le départ"
-          }
+          "id": "parc",
+          "label": "Le parc Belvédère",
+          "voiceLine": "Notre premier vrai fou rire, sur ce banc là-bas.",
+          "description": "Il pleuvait. On a couru. On était trempés et on s'en fichait."
         },
         {
-          "id": "future",
-          "label": "Le Futur",
-          "voiceLine": "Je reviens te chercher. Et ce jour-là…",
-          "description": "Une maison. Un jardin. Toi et moi. Pour toujours.",
-          "media": null
+          "id": "plage",
+          "label": "La plage",
+          "voiceLine": "C'est ici. L'endroit exact où tout a commencé.",
+          "description": "Le soleil se couchait. Tu m'as pris la main sans rien dire."
         }
       ]
     },
