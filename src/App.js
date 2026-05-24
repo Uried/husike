@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ExperienceEngine from './components/experience/ExperienceEngine';
 import CosmosBackground from './components/experience/CosmosBackground';
+import Atmos from './atmos';
 
 function App() {
   useEffect(() => {
@@ -44,6 +45,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/experience/:token" element={<ExperienceEngine />} />
+          <Route path="/atmos" element={<Atmos />} />
           <Route path="/" element={<HomePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -154,6 +156,20 @@ function HomePage() {
             ✦ Démo — je-reviens
           </a>
         )}
+
+        {/* ATMOS Experience */}
+        <a
+          href="/atmos"
+          className="mt-4 px-6 py-2.5 rounded-full text-[10px] tracking-[0.4em] uppercase transition-all duration-300"
+          style={{
+            border: '1px solid rgba(135,206,235,0.3)',
+            color: 'rgba(135,206,235,0.6)',
+          }}
+          onMouseEnter={e => { e.target.style.borderColor = 'rgba(135,206,235,0.7)'; e.target.style.color = 'rgba(135,206,235,0.95)'; }}
+          onMouseLeave={e => { e.target.style.borderColor = 'rgba(135,206,235,0.3)'; e.target.style.color = 'rgba(135,206,235,0.6)'; }}
+        >
+          ☁️ ATMOS — Flight Experience
+        </a>
       </div>
     </div>
   );

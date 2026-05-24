@@ -1,0 +1,328 @@
+/* ATMOS - Styles inspired by https://atmos.leeroy.ca */
+/* Elegant, immersive aviation experience */
+
+@font-face {
+  font-family: 'ATMOS';
+  src: local('Helvetica Neue'), local('Arial');
+  font-weight: 300;
+}
+
+.atmos-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(180deg, #87CEEB 0%, #B0E0E6 50%, #E0F6FF 100%);
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Loading Screen */
+.atmos-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #87CEEB 0%, #B0E0E6 100%);
+  z-index: 100;
+  color: white;
+  font-size: 1.2rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.atmos-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: atmos-spin 1s linear infinite;
+  margin-bottom: 2rem;
+}
+
+@keyframes atmos-spin {
+  to { transform: rotate(360deg); }
+}
+
+.atmos-loading p {
+  animation: atmos-pulse 2s ease-in-out infinite;
+}
+
+@keyframes atmos-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Start Screen */
+.atmos-start-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #6BB3D9 0%, #87CEEB 40%, #B8E6F0 100%);
+  z-index: 50;
+  animation: atmos-fade-in 1s ease-out;
+}
+
+@keyframes atmos-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Logo Animation */
+.atmos-logo {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.atmos-letter {
+  font-size: clamp(4rem, 12vw, 8rem);
+  font-weight: 200;
+  color: white;
+  text-shadow: 
+    0 2px 10px rgba(0, 0, 0, 0.1),
+    0 10px 30px rgba(0, 0, 0, 0.1);
+  animation: atmos-letter-float 3s ease-in-out infinite;
+  opacity: 0;
+  animation-fill-mode: forwards;
+}
+
+.atmos-letter:nth-child(1) { animation-delay: 0.1s; }
+.atmos-letter:nth-child(2) { animation-delay: 0.2s; }
+.atmos-letter:nth-child(3) { animation-delay: 0.3s; }
+.atmos-letter:nth-child(4) { animation-delay: 0.4s; }
+.atmos-letter:nth-child(5) { animation-delay: 0.5s; }
+
+@keyframes atmos-letter-float {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  70% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Tagline */
+.atmos-tagline {
+  font-size: clamp(1rem, 2.5vw, 1.4rem);
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  max-width: 500px;
+  margin: 0 2rem 3rem;
+  line-height: 1.6;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  animation: atmos-fade-up 1s ease-out 0.6s both;
+}
+
+@keyframes atmos-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Start Button */
+.atmos-start-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 2.5rem;
+  background: white;
+  border: none;
+  border-radius: 50px;
+  color: #4A90A4;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.1),
+    0 10px 40px rgba(0, 0, 0, 0.1);
+  animation: atmos-fade-up 1s ease-out 0.8s both;
+}
+
+.atmos-start-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 
+    0 8px 30px rgba(0, 0, 0, 0.15),
+    0 15px 50px rgba(0, 0, 0, 0.15);
+  background: #f8f9fa;
+}
+
+.atmos-start-btn:active {
+  transform: translateY(-1px) scale(0.98);
+}
+
+.atmos-start-btn svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.3s ease;
+}
+
+.atmos-start-btn:hover svg {
+  transform: translateX(5px);
+}
+
+/* Credits */
+.atmos-credits {
+  position: absolute;
+  bottom: 3rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  animation: atmos-fade-up 1s ease-out 1s both;
+}
+
+.atmos-credits p {
+  margin: 0.5rem 0;
+}
+
+.atmos-credits a {
+  color: white;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  transition: border-color 0.3s ease;
+}
+
+.atmos-credits a:hover {
+  border-bottom-color: white;
+}
+
+/* 3D Canvas */
+.atmos-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.atmos-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* HUD */
+.atmos-hud {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.atmos-hud-item {
+  padding: 0.8rem 1.5rem;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  animation: atmos-fade-up 0.5s ease-out;
+}
+
+/* End Screen */
+.atmos-end-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(135, 206, 235, 0.9);
+  backdrop-filter: blur(20px);
+  z-index: 40;
+  text-align: center;
+  padding: 2rem;
+  transition: opacity 1s ease;
+}
+
+.atmos-end-screen h2 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  color: white;
+  font-weight: 300;
+  margin-bottom: 1rem;
+  letter-spacing: 0.1em;
+}
+
+.atmos-end-screen p {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .atmos-logo {
+    gap: 0.3rem;
+  }
+  
+  .atmos-letter {
+    font-size: 3rem;
+  }
+  
+  .atmos-tagline {
+    font-size: 1rem;
+    margin: 0 1.5rem 2rem;
+  }
+  
+  .atmos-start-btn {
+    padding: 1rem 2rem;
+    font-size: 0.9rem;
+  }
+  
+  .atmos-credits {
+    bottom: 2rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* Exit animation */
+.atmos-start-screen.atmos-exit {
+  animation: atmos-fade-out 0.8s ease-in forwards;
+}
+
+@keyframes atmos-fade-out {
+  to {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+}
+
+/* Grain overlay for texture */
+.atmos-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 1;
+}
