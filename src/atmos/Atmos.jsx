@@ -13,18 +13,58 @@ import './Atmos.css';
 // ATMOS - Recreation of https://atmos.leeroy.ca
 // An immersive aviation experience with glider flight through clouds
 
-// Aviation facts that appear in 3D space
+// Aviation facts with title and description like the real site
 const AVIATION_FACTS = [
-  "The Earth's atmosphere extends over 600 km into space",
-  "Commercial planes fly at 35,000 feet for optimal fuel efficiency",
-  "The contrails left by planes can last for hours",
-  "A single cloud can weigh more than a million pounds",
-  "The average cruising speed is 900 km/h (560 mph)",
-  "Pilots experience time dilation on long flights",
-  "The Wright brothers' first flight lasted only 12 seconds",
-  "Modern jet engines are 85% efficient",
-  "Air is 78% nitrogen, 21% oxygen, 1% other gases",
-  "A plane's wings create lift through pressure difference",
+  {
+    number: "00",
+    title: "WELCOME ABOARD",
+    description: "Hello passengers and welcome aboard. Please sit back, relax, and enjoy the view while we tell you some of our favourite facts about the aviation world."
+  },
+  {
+    number: "01",
+    title: "SKY BABIES",
+    description: "Apart from a crash, the worst nightmare of every flight attendant is childbirth on board. Although extremely rare, nearly 60 babies were born in the sky!"
+  },
+  {
+    number: "02",
+    title: "A LONG FLIGHT",
+    description: "The longest commercial flight you can book is a flight from Singapore to New York that lasts 18 hours 50 minutes... better get comfortable!"
+  },
+  {
+    number: "03",
+    title: "47 SECONDS",
+    description: "Not a fan of airtime? The shortest flight available takes place in Scotland. It connects Westray to Papa Westray and takes 47 seconds!"
+  },
+  {
+    number: "04",
+    title: "IN THE DARK",
+    description: "At night, lights on board are dimmed for landing and takeoff so that in the event of an emergency, passengers' eyes will already be adjusted to darkness."
+  },
+  {
+    number: "05",
+    title: "PILOT POWER",
+    description: "Did you know that the pilot and co-pilot are required to eat different meals? This is to avoid the risk of both being sick from food poisoning."
+  },
+  {
+    number: "06",
+    title: "HIDDEN ROOMS",
+    description: "There is a secret room on board most Boeing 777 and 787 aircraft. It is located above first class and has beds and a bathroom for crew members."
+  },
+  {
+    number: "07",
+    title: "BLACK BOX",
+    description: "Despite its name, the black box is actually orange. This color was chosen to make it easier to find it among the debris of a plane crash."
+  },
+  {
+    number: "08",
+    title: "OXYGEN MASKS",
+    description: "In the event of a decompression, oxygen masks drop from above. But be aware: there is only about 15 minutes of oxygen in them... enough for an emergency landing."
+  },
+  {
+    number: "09",
+    title: "LIGHTNING",
+    description: "Planes are struck by lightning on average once a year. But don't worry, modern aircraft are designed to withstand these extreme electrical discharges."
+  },
 ];
 
 const Atmos = () => {
@@ -40,8 +80,13 @@ const Atmos = () => {
   const rendererRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
-  const [fadeIn, setFadeIn] = useState(true);
-  const mouseRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 });
+  const [fadeIn, setFadeIn] = useState(false);
+  const scrollProgressRef = useRef(0); // 0 to 1 along the flight path
+  const targetScrollRef = useRef(0);
+  const flightPathRef = useRef(null);
+  const pathPointsRef = useRef([]);
+  const trailRef = useRef(null); // White trail behind glider
+  const slowdownZonesRef = useRef([]); // Zones where plane slows down
   const velocityRef = useRef({ x: 0, y: 0 });
   const rafRef = useRef(null);
 
@@ -64,8 +109,9 @@ const Atmos = () => {
         });
       }
       audioRef.current.play();
-      // White fade transition
-      setTimeout(() => setFadeIn(false), 100);
+      // White fade transition: first show white, then fade out
+      setFadeIn(true);
+      setTimeout(() => setFadeIn(false), 1500);
     }
     return () => {
       if (audioRef.current) audioRef.current.pause();
@@ -78,9 +124,10 @@ const Atmos = () => {
 
     // Scene setup with atmospheric fog
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x6BB3D9);
+    // Gradient background that changes during flight - start with deep blue
+    scene.background = new THREE.Color(0x4A4FD9);
     // Volumetric-like exponential fog for distant cloud blending
-    scene.fog = new THREE.FogExp2(0xB8E6F0, 0.008);
+    scene.fog = new THREE.FogExp2(0x7B7FE0, 0.006);
     sceneRef.current = scene;
 
     // Camera
@@ -125,9 +172,9 @@ const Atmos = () => {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
-    // Main sun light with soft shadows
-    const sunLight = new THREE.DirectionalLight(0xfff8e7, 1.2);
-    sunLight.position.set(30, 60, 40);
+    // Main sun light with soft shadows - warmer tone for sunset effect
+    const sunLight = new THREE.DirectionalLight(0xFFE8D0, 1.1);
+    sunLight.position.set(20, 50, 30);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
@@ -140,20 +187,20 @@ const Atmos = () => {
     sunLight.shadow.bias = -0.0001;
     scene.add(sunLight);
 
-    // Hemisphere light for sky/ground color grading
-    const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0xE8D5B0, 0.6);
+    // Hemisphere light for sky/ground color grading - purple tones
+    const hemiLight = new THREE.HemisphereLight(0x6B6FE0, 0xFFB8A0, 0.5);
     scene.add(hemiLight);
 
-    // Simple cloud material - MeshStandard with good lighting response
+    // Cloud material - soft purple/white like the real site
     const createCloudMaterial = () => {
       return new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        roughness: 0.35,
+        color: 0xE8E8FF,
+        roughness: 0.4,
         metalness: 0.0,
-        emissive: 0x223344,
-        emissiveIntensity: 0.15,
+        emissive: 0x6B6FE0,
+        emissiveIntensity: 0.1,
         transparent: true,
-        opacity: 0.88,
+        opacity: 0.92,
         side: THREE.DoubleSide,
         depthWrite: false,
       });
@@ -374,55 +421,201 @@ const Atmos = () => {
       loadCloud(cloudPath, pos, pos.scale, i);
     });
 
-    // Create floating text using CanvasTexture instead of troika-three-text
-    // to avoid font loading issues
-    const createTextSprite = (text, i) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = 1024;
-      canvas.height = 128;
+    // Create flight path - a winding curve through the sky
+    // The plane will follow this path as user scrolls
+    const createFlightPath = () => {
+      const points = [];
+      const numPoints = 50;
+      const pathLength = 300; // Total depth of the journey
       
-      // Draw text
-      ctx.fillStyle = 'rgba(255, 255, 255, 0)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < numPoints; i++) {
+        const t = i / (numPoints - 1);
+        // Create winding path with sine waves
+        const x = Math.sin(t * Math.PI * 3) * 20 + Math.sin(t * Math.PI * 1.5) * 10;
+        const y = Math.sin(t * Math.PI * 2) * 8 + Math.cos(t * Math.PI * 4) * 3 + 2;
+        const z = -t * pathLength;
+        points.push(new THREE.Vector3(x, y, z));
+      }
       
-      ctx.font = '500 32px "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = 'rgba(135, 206, 235, 0.5)';
-      ctx.shadowBlur = 20;
-      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+      const curve = new THREE.CatmullRomCurve3(points);
+      curve.curveType = 'catmullrom';
+      curve.tension = 0.5;
       
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.minFilter = THREE.LinearFilter;
-      
-      const material = new THREE.SpriteMaterial({ 
-        map: texture, 
-        transparent: true,
-        opacity: 0
-      });
-      const sprite = new THREE.Sprite(material);
-      sprite.scale.set(12, 1.5, 1);
-      sprite.position.set(
-        (Math.random() - 0.5) * 60,
-        -5 + Math.random() * 20,
-        -30 - i * 25
-      );
-      
-      return sprite;
+      return { curve, points };
     };
     
+    const { curve, points } = createFlightPath();
+    flightPathRef.current = curve;
+    pathPointsRef.current = points;
+    
+    // Create white trail that follows the glider
+    const createTrail = () => {
+      const trailGeometry = new THREE.BufferGeometry();
+      const trailLength = 100;
+      const positions = new Float32Array(trailLength * 3);
+      trailGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      
+      const trailMaterial = new THREE.PointsMaterial({
+        color: 0xFFFFFF,
+        size: 0.15,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending
+      });
+      
+      const trail = new THREE.Points(trailGeometry, trailMaterial);
+      trail.userData = { 
+        positions: [],
+        maxLength: trailLength 
+      };
+      scene.add(trail);
+      return trail;
+    };
+    
+    trailRef.current = createTrail();
+    
+    // Create text group with proper layout: Fact #XX, Title, Description
+    const createFactDisplay = (fact, i) => {
+      const group = new THREE.Group();
+      
+      // Fact number sprite
+      const numberCanvas = document.createElement('canvas');
+      numberCanvas.width = 512;
+      numberCanvas.height = 64;
+      const nCtx = numberCanvas.getContext('2d');
+      nCtx.fillStyle = 'rgba(255, 255, 255, 0)';
+      nCtx.fillRect(0, 0, 512, 64);
+      nCtx.font = '300 24px "Segoe UI", Helvetica, Arial, sans-serif';
+      nCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      nCtx.textAlign = 'center';
+      nCtx.fillText(`Fact #${fact.number}`, 256, 40);
+      
+      const numberTexture = new THREE.CanvasTexture(numberCanvas);
+      const numberSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: numberTexture,
+        transparent: true,
+        opacity: 0
+      }));
+      numberSprite.scale.set(6, 0.75, 1);
+      numberSprite.position.set(0, 2.5, 0);
+      group.add(numberSprite);
+      
+      // Title sprite
+      const titleCanvas = document.createElement('canvas');
+      titleCanvas.width = 1024;
+      titleCanvas.height = 128;
+      const tCtx = titleCanvas.getContext('2d');
+      tCtx.fillStyle = 'rgba(255, 255, 255, 0)';
+      tCtx.fillRect(0, 0, 1024, 128);
+      tCtx.font = '300 64px "Segoe UI", Helvetica, Arial, sans-serif';
+      tCtx.fillStyle = 'rgba(255, 255, 255, 1)';
+      tCtx.textAlign = 'center';
+      tCtx.fillText(fact.title, 512, 80);
+      
+      const titleTexture = new THREE.CanvasTexture(titleCanvas);
+      const titleSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: titleTexture,
+        transparent: true,
+        opacity: 0
+      }));
+      titleSprite.scale.set(16, 2, 1);
+      titleSprite.position.set(0, 1.2, 0);
+      group.add(titleSprite);
+      
+      // Description sprite
+      const descCanvas = document.createElement('canvas');
+      descCanvas.width = 1024;
+      descCanvas.height = 200;
+      const dCtx = descCanvas.getContext('2d');
+      dCtx.fillStyle = 'rgba(255, 255, 255, 0)';
+      dCtx.fillRect(0, 0, 1024, 200);
+      dCtx.font = '300 28px "Segoe UI", Helvetica, Arial, sans-serif';
+      dCtx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      dCtx.textAlign = 'center';
+      
+      // Wrap text
+      const words = fact.description.split(' ');
+      let line = '';
+      let y = 50;
+      const lineHeight = 38;
+      const maxWidth = 900;
+      
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = dCtx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          dCtx.fillText(line, 512, y);
+          line = words[n] + ' ';
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      dCtx.fillText(line, 512, y);
+      
+      const descTexture = new THREE.CanvasTexture(descCanvas);
+      const descSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: descTexture,
+        transparent: true,
+        opacity: 0
+      }));
+      descSprite.scale.set(16, 3, 1);
+      descSprite.position.set(0, -1.5, 0);
+      group.add(descSprite);
+      
+      // Position along flight path
+      const pathIndex = Math.floor((i / AVIATION_FACTS.length) * (points.length - 1));
+      const pos = points[pathIndex];
+      group.position.set(
+        pos.x + 12, // Position to the right of the path
+        pos.y + 2,
+        pos.z
+      );
+      
+      // Store references for animation
+      group.userData = {
+        pathIndex,
+        originalZ: pos.z,
+        sprites: [numberSprite, titleSprite, descSprite]
+      };
+      
+      return group;
+    };
+    
+    // Create slowdown zones at each fact position
+    slowdownZonesRef.current = [];
+    
     AVIATION_FACTS.forEach((fact, i) => {
-      const textSprite = createTextSprite(fact, i);
-      textMeshesRef.current.push(textSprite);
-      scene.add(textSprite);
+      const factDisplay = createFactDisplay(fact, i);
+      textMeshesRef.current.push(factDisplay);
+      scene.add(factDisplay);
+      
+      // Register slowdown zone
+      slowdownZonesRef.current.push({
+        z: factDisplay.position.z,
+        index: i,
+        active: false
+      });
     });
+    
+    // Add scroll listener for flight progression
+    const handleScroll = () => {
+      if (!started) return;
+      // Calculate scroll progress (0 to 1) based on page scroll
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = Math.min(Math.max(scrollTop / docHeight, 0), 1);
+      targetScrollRef.current = progress;
+    };
+    
+    // Enable smooth scroll behavior
+    document.body.style.overflow = 'auto';
+    document.body.style.height = '500vh'; // Extended height for scrolling (longer journey)
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     setLoading(false);
 
-    // Animation loop with physics-based glider movement
-    // Custom timing instead of deprecated THREE.Clock
+    // Animation loop with scroll-driven flight path
     let startTime = performance.now();
     let lastTime = startTime;
     
@@ -436,95 +629,179 @@ const Atmos = () => {
       // Update mixer
       if (mixerRef.current) mixerRef.current.update(delta);
       
-      // Smooth mouse input with easing
-      const targetX = mouseRef.current.x;
-      const targetY = mouseRef.current.y;
-      mouseRef.current.targetX += (targetX - mouseRef.current.targetX) * 0.05;
-      mouseRef.current.targetY += (targetY - mouseRef.current.targetY) * 0.05;
+      // Smooth scroll progress interpolation with auto-slowdown near messages
+      let targetProgress = targetScrollRef.current;
       
-      // Glider physics-based animation
-      if (planeRef.current && started) {
-        const plane = planeRef.current;
-        const t = mouseRef.current;
-        
-        // Target position based on mouse with limits
-        const maxX = 12;
-        const maxY = 6;
-        const targetPosX = t.targetX * maxX;
-        const targetPosY = t.targetY * maxY;
-        
-        // Smooth position interpolation (inertia)
-        plane.position.x += (targetPosX - plane.position.x) * 0.04;
-        plane.position.y += (targetPosY - plane.position.y) * 0.04;
-        
-        // Calculate velocity for banking
-        velocityRef.current.x = (targetPosX - plane.position.x) * 0.1;
-        velocityRef.current.y = (targetPosY - plane.position.y) * 0.1;
-        
-        // Banking (roll) - proportional to horizontal velocity with realistic aircraft dynamics
-        const maxBankAngle = 0.8; // ~45 degrees
-        const targetRoll = -velocityRef.current.x * 3.0; // Negative for correct bank direction
-        plane.rotation.z = THREE.MathUtils.lerp(plane.rotation.z, 
-          THREE.MathUtils.clamp(targetRoll, -maxBankAngle, maxBankAngle), 
-          0.08
-        );
-        
-        // Pitch - slight nose up/down based on vertical movement
-        const targetPitch = velocityRef.current.y * 0.5 + Math.sin(elapsed * 0.5) * 0.05;
-        plane.rotation.x = THREE.MathUtils.lerp(plane.rotation.x, targetPitch, 0.05);
-        
-        // Yaw - slight turn coordination with roll
-        const targetYaw = -velocityRef.current.x * 0.3;
-        plane.rotation.y = Math.PI + THREE.MathUtils.lerp(plane.rotation.y - Math.PI, targetYaw, 0.03);
-        
-        // Gentle floating motion
-        plane.position.y += Math.sin(elapsed * 0.7) * 0.008;
-        
-        // Forward illusion (very subtle camera z-movement instead of plane)
-        plane.position.z = Math.sin(elapsed * 0.3) * 0.5;
+      // Check if near any fact message - slow down automatically for reading
+      const currentPlaneZ = curve.getPointAt(scrollProgressRef.current).z;
+      let inSlowdownZone = false;
+      const slowdownDistance = 15; // Distance at which slowing starts
+      const slowdownFactor = 0.3; // How much to slow down (0.3 = 30% speed)
+      
+      slowdownZonesRef.current.forEach(zone => {
+        const dist = Math.abs(currentPlaneZ - zone.z);
+        if (dist < slowdownDistance) {
+          inSlowdownZone = true;
+          // Blend between normal and slowed speed based on distance
+          const factor = 1 - (dist / slowdownDistance);
+          targetProgress = scrollProgressRef.current + (targetScrollRef.current - scrollProgressRef.current) * (slowdownFactor + (1 - factor) * 0.7);
+        }
+      });
+      
+      if (!inSlowdownZone) {
+        scrollProgressRef.current += (targetProgress - scrollProgressRef.current) * 0.05;
+      } else {
+        scrollProgressRef.current += (targetProgress - scrollProgressRef.current) * 0.02; // Even slower interpolation in zones
       }
       
-      // Animate clouds
+      // Update sky color based on flight progress (blue -> purple -> orange)
+      const flightProgress = scrollProgressRef.current;
+      const startColor = new THREE.Color(0x4A4FD9); // Deep blue
+      const midColor = new THREE.Color(0x7B5FD9);   // Purple
+      const endColor = new THREE.Color(0xF4A574);   // Warm orange (sunset)
+      
+      let skyColor;
+      if (flightProgress < 0.5) {
+        skyColor = startColor.clone().lerp(midColor, flightProgress * 2);
+      } else {
+        skyColor = midColor.clone().lerp(endColor, (flightProgress - 0.5) * 2);
+      }
+      scene.background = skyColor;
+      scene.fog.color = skyColor.clone().multiplyScalar(0.9);
+      
+      // Flight path animation
+      if (planeRef.current && started && flightPathRef.current) {
+        const plane = planeRef.current;
+        const curve = flightPathRef.current;
+        const progress = scrollProgressRef.current;
+        
+        // Get position on curve - NO MOUSE INFLUENCE
+        const position = curve.getPointAt(progress);
+        
+        // Smoothly interpolate to exact path position
+        plane.position.x += (position.x - plane.position.x) * 0.08;
+        plane.position.y += (position.y - plane.position.y) * 0.08;
+        plane.position.z = position.z;
+        
+        // Calculate orientation from tangent
+        const lookAheadProgress = Math.min(progress + 0.02, 1);
+        const lookTarget = curve.getPointAt(lookAheadProgress);
+        
+        // Calculate banking based on curve curvature
+        const prevProgress = Math.max(progress - 0.02, 0);
+        const prevPos = curve.getPointAt(prevProgress);
+        const curvature = position.x - prevPos.x;
+        
+        // Banking (roll) based on horizontal curvature
+        const maxBankAngle = 0.5;
+        const targetRoll = -curvature * 12;
+        plane.rotation.z = THREE.MathUtils.lerp(plane.rotation.z, 
+          THREE.MathUtils.clamp(targetRoll, -maxBankAngle, maxBankAngle), 
+          0.1
+        );
+        
+        // Pitch based on vertical slope
+        const verticalSlope = lookTarget.y - position.y;
+        const targetPitch = verticalSlope * 1.5;
+        plane.rotation.x = THREE.MathUtils.lerp(plane.rotation.x, targetPitch, 0.1);
+        
+        // Yaw - look ahead on the path
+        plane.lookAt(lookTarget);
+        
+        // Update trail - add current position to trail history
+        if (trailRef.current) {
+          const trail = trailRef.current;
+          const positions = trail.userData.positions;
+          
+          // Add current position (behind the plane)
+          positions.unshift({
+            x: plane.position.x,
+            y: plane.position.y - 0.5,
+            z: plane.position.z + 2
+          });
+          
+          // Limit trail length
+          if (positions.length > trail.userData.maxLength) {
+            positions.pop();
+          }
+          
+          // Update geometry
+          const posArray = trail.geometry.attributes.position.array;
+          for (let i = 0; i < positions.length; i++) {
+            posArray[i * 3] = positions[i].x;
+            posArray[i * 3 + 1] = positions[i].y;
+            posArray[i * 3 + 2] = positions[i].z;
+          }
+          
+          // Hide unused trail points
+          for (let i = positions.length; i < trail.userData.maxLength; i++) {
+            posArray[i * 3] = 0;
+            posArray[i * 3 + 1] = 0;
+            posArray[i * 3 + 2] = 0;
+          }
+          
+          trail.geometry.attributes.position.needsUpdate = true;
+        }
+      }
+      
+      // Animate clouds - drift slowly past
       cloudsRef.current.forEach((cloud, i) => {
         if (cloud) {
-          const speed = 0.03 + (i % 3) * 0.01;
-          cloud.position.z += speed;
-          cloud.position.x += Math.sin(elapsed * 0.1 + i) * 0.015;
+          // Move clouds relative to plane's forward motion
+          const planeZ = planeRef.current?.position.z || 0;
           
-          // Reset when past camera
-          if (cloud.position.z > 15) {
-            cloud.position.z = -130 - Math.random() * 30;
+          // Clouds drift slowly
+          cloud.position.x += Math.sin(elapsed * 0.1 + i) * 0.01;
+          
+          // Reset clouds that are too far behind or ahead
+          const relativeZ = cloud.position.z - planeZ;
+          if (relativeZ > 20 || relativeZ < -150) {
+            // Reposition in front of plane's path
+            cloud.position.z = planeZ - 100 - Math.random() * 50;
             cloud.position.x = (Math.random() - 0.5) * 80;
             cloud.position.y = (Math.random() - 0.5) * 35;
           }
         }
       });
       
-      // Animate 3D text - fade in when approaching
-      textMeshesRef.current.forEach((text, i) => {
-        if (!text) return;
-        const dist = camera.position.z - text.position.z;
-        const targetOpacity = (dist > 5 && dist < 35) ? 0.85 : 0.0;
-        text.material.opacity = THREE.MathUtils.lerp(text.material.opacity, targetOpacity, 0.02);
+      // Animate fact displays - fade in all 3 text elements when plane approaches
+      const planeZ = planeRef.current?.position.z || 0;
+      textMeshesRef.current.forEach((group, i) => {
+        if (!group) return;
+        const dist = Math.abs(group.position.z - planeZ);
         
-        // Gentle floating
-        text.position.y += Math.sin(elapsed * 0.5 + i) * 0.005;
+        // Fade in when close (within 30 units), fade out when too close (< 3) or far (> 50)
+        let targetOpacity = 0;
+        if (dist < 40 && dist > 5) {
+          targetOpacity = 1.0;
+        }
+        
+        // Apply to all sprites in the group
+        group.userData.sprites.forEach((sprite, j) => {
+          if (sprite) {
+            sprite.material.opacity = THREE.MathUtils.lerp(sprite.material.opacity, targetOpacity, 0.02);
+          }
+        });
       });
       
-      // Camera follows glider with smooth damping
+      // Camera follows glider with cinematic framing
       if (planeRef.current && started) {
         const plane = planeRef.current;
-        const targetCamX = plane.position.x * 0.25;
-        const targetCamY = plane.position.y * 0.25 + 3;
         
-        camera.position.x += (targetCamX - camera.position.x) * 0.03;
-        camera.position.y += (targetCamY - camera.position.y) * 0.03;
+        // Camera position: behind and above the plane, following the curve
+        const targetCamX = plane.position.x * 0.3;
+        const targetCamY = plane.position.y * 0.3 + 4;
+        const targetCamZ = plane.position.z + 15; // Behind the plane
         
-        // Look slightly ahead of plane
+        camera.position.x += (targetCamX - camera.position.x) * 0.04;
+        camera.position.y += (targetCamY - camera.position.y) * 0.04;
+        camera.position.z += (targetCamZ - camera.position.z) * 0.04;
+        
+        // Look at plane with slight anticipation
         const lookTarget = new THREE.Vector3(
-          plane.position.x * 0.5,
-          plane.position.y * 0.3,
-          plane.position.z - 5
+          plane.position.x,
+          plane.position.y,
+          plane.position.z - 10
         );
         camera.lookAt(lookTarget);
       }
@@ -538,21 +815,8 @@ const Atmos = () => {
     
     rafRef.current = requestAnimationFrame(animate);
 
-    // Input handlers
-    const handleMouseMove = (e) => {
-      mouseRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
-      mouseRef.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    };
-
-    const handleTouchMove = (e) => {
-      if (e.touches.length > 0) {
-        mouseRef.current.x = (e.touches[0].clientX / window.innerWidth) * 2 - 1;
-        mouseRef.current.y = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
-      }
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    // Scroll is the only input for flight progression
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     // Resize handler
     const handleResize = () => {
@@ -566,9 +830,12 @@ const Atmos = () => {
     // Cleanup
     return () => {
       cancelAnimationFrame(rafRef.current);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
+      
+      // Reset body styles
+      document.body.style.overflow = '';
+      document.body.style.height = '';
       
       if (mount.contains(renderer.domElement)) {
         mount.removeChild(renderer.domElement);
@@ -616,6 +883,7 @@ const Atmos = () => {
               <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
+          <p className="atmos-instruction">Then scroll down to follow the flight path</p>
           <div className="atmos-credits">
             <p>Music by <a href="https://freemusicarchive.org/music/independent-music-licensing-collective-imlc/emotive-ambience-licensing-pack-ketsa" target="_blank" rel="noopener noreferrer">Ketsa</a></p>
             <p>An experiment by <a href="https://leeroy.ca" target="_blank" rel="noopener noreferrer">Leeroy</a></p>
@@ -626,11 +894,15 @@ const Atmos = () => {
       {/* 3D Canvas */}
       <div ref={mountRef} className="atmos-canvas" />
 
-      {/* HUD / Controls hint */}
+      {/* HUD / Controls hint - shows scroll instruction when starting */}
       {started && (
         <div className="atmos-hud">
           <div className="atmos-hud-item">
-            <span>Move mouse to fly</span>
+            <span>Scroll to fly along the path</span>
+          </div>
+          <div className="atmos-scroll-indicator">
+            <div className="atmos-scroll-line"></div>
+            <div className="atmos-scroll-arrow">↓</div>
           </div>
         </div>
       )}
