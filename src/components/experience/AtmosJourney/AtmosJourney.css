@@ -1,0 +1,322 @@
+/* ATMOS - Matching https://atmos.leeroy.ca exactly */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+.atmos-container {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: #7B7FCC;
+  color: #fff;
+}
+
+/* Intro overlay */
+.atmos-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: opacity 1.8s ease;
+}
+
+.atmos-intro.out { opacity: 0; }
+
+.atmos-intro h1 {
+  font-size: clamp(72px, 12.5vw, 155px);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 0.88;
+  text-transform: uppercase;
+  color: #7B7FCC;
+  text-shadow: 0 4px 70px rgba(50, 30, 150, 0.25);
+}
+
+.atmos-intro p {
+  margin-top: 26px;
+  font-size: 9px;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: #7B7FCC;
+  opacity: 0.55;
+  animation: bob 2.4s ease-in-out infinite;
+}
+
+@keyframes bob {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50% { opacity: 0.75; transform: translateY(5px); }
+}
+
+/* Header */
+.atmos-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 32px 44px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.atmos-logo {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.atmos-tagline {
+  text-align: right;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.4;
+  line-height: 2;
+  color: #fff;
+}
+
+/* Sound toggle */
+.atmos-sound {
+  position: fixed;
+  bottom: 32px;
+  right: 44px;
+  z-index: 20;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+  padding: 0;
+}
+
+.atmos-sound:hover { opacity: 1; }
+
+.atmos-sound svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+/* Progress bar */
+.atmos-progress-wrap {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  z-index: 10;
+}
+
+.atmos-progress {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.65);
+  transition: width 0.06s linear;
+}
+
+/* 3D Canvas */
+.atmos-canvas-container {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.atmos-canvas-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Scroll area */
+.atmos-scroll-area {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  z-index: 5;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.atmos-scroll-area::-webkit-scrollbar { display: none; }
+
+.atmos-scroll-spacer {
+  height: 500vh;
+}
+
+/* Footer */
+.atmos-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 24px 44px;
+  font-size: 8px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  opacity: 0.28;
+  color: #fff;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* End screen */
+.atmos-end {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.4s ease;
+  background: radial-gradient(ellipse at center, rgba(100, 110, 200, 0.32) 0%, transparent 60%);
+}
+
+.atmos-end.on { opacity: 1; pointer-events: all; }
+
+.atmos-end h2 {
+  font-size: clamp(19px, 3vw, 40px);
+  font-weight: 300;
+  letter-spacing: 0.07em;
+  text-align: center;
+  line-height: 1.5;
+  color: #fff;
+}
+
+.atmos-end p {
+  font-size: 9px;
+  opacity: 0.35;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.atmos-restart {
+  margin-top: 6px;
+  padding: 10px 34px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  background: transparent;
+  color: #fff;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: all;
+  transition: background 0.22s;
+}
+
+.atmos-restart:hover { background: rgba(255, 255, 255, 0.13); }
+
+/* Custom cursor */
+.atmos-cursor {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: difference;
+  will-change: left, top;
+  transition: width 0.18s ease, height 0.18s ease;
+}
+
+.atmos-cursor.big {
+  width: 42px;
+  height: 42px;
+}
+
+/* Easter egg notification */
+.atmos-egg {
+  position: fixed;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(10px);
+  padding: 9px 20px;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  z-index: 60;
+  color: #fff;
+  white-space: nowrap;
+  animation: eggFade 0.5s ease;
+}
+
+@keyframes eggFade {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* HTML Facts overlay */
+.atmos-facts {
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  pointer-events: none;
+}
+
+.atmos-fact {
+  position: absolute;
+  max-width: 280px;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+  text-shadow: 0 2px 18px rgba(30, 20, 100, 0.5);
+}
+
+.atmos-fact-left {
+  left: 7%;
+}
+
+.atmos-fact-right {
+  right: 7%;
+}
+
+.atmos-fact-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.atmos-fact-label {
+  font-size: 8px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  opacity: 0.45;
+  margin-bottom: 4px;
+  color: #fff;
+}
+
+.atmos-fact-body {
+  font-size: clamp(14px, 1.9vw, 19px);
+  font-weight: 300;
+  line-height: 1.45;
+  color: #fff;
+  white-space: pre-line;
+}

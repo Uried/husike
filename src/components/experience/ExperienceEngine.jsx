@@ -13,6 +13,7 @@ import Scene2Verification from './Scene2Verification';
 import Scene3Journey from './Scene3Journey';
 import Scene4Intimate from './Scene4Intimate';
 import Scene5TimeMessages from './Scene5TimeMessages';
+import AtmosJourney from './AtmosJourney';
 import CosmosBackground from './CosmosBackground';
 import { getDailyMood } from './DailyMood';
 
@@ -162,6 +163,7 @@ const ExperienceEngine = () => {
       case 'scene3-universe':    return <Scene3Journey data={stepData} onNext={handleNext} />;
       case 'scene4-intimate':    return <Scene4Intimate data={stepData} onNext={handleNext} />;
       case 'scene5-timemessages':return <Scene5TimeMessages data={stepData} dailyMessage={dailyMessage} />;
+      case 'atmos-journey':      return <AtmosJourney data={stepData} onNext={handleNext} />;
       default:                   return null;
     }
   };

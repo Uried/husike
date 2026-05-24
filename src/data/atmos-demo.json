@@ -1,0 +1,54 @@
+{
+  "title": "ATMOS",
+  "subtitle": "A journey through the sky",
+  "recipientName": "Traveler",
+  "senderName": "Pilot",
+  "createdAt": "2026-05-24",
+  "startDate": "2026-05-24",
+  "steps": [
+    {
+      "type": "atmos-journey",
+      "voiceLine": "Welcome aboard. Let's soar.",
+      "cards": [
+        {
+          "id": 1,
+          "position": 0.20,
+          "align": "right",
+          "number": "01",
+          "label": "ALTITUDE",
+          "description": "The glider soars silently at 3,000 feet, carried only by rising warm air currents."
+        },
+        {
+          "id": 2,
+          "position": 0.40,
+          "align": "left",
+          "number": "02",
+          "label": "SPEED",
+          "description": "Average cruising speed of 50 knots. Slow enough to feel every breeze."
+        },
+        {
+          "id": 3,
+          "position": 0.60,
+          "align": "right",
+          "number": "03",
+          "label": "SILENCE",
+          "description": "No engine. Only the sound of wind against the wings and your own breath."
+        },
+        {
+          "id": 4,
+          "position": 0.75,
+          "align": "left",
+          "number": "04",
+          "label": "FREEDOM",
+          "description": "Three hours of flight. No destination, just the journey and the sky."
+        }
+      ],
+      "endMessage": "Some journeys don't need a destination. Just the sky, the wind, and the courage to soar."
+    }
+  ],
+  "dailyMessages": [
+    "The sky is waiting.",
+    "Today's thermals are perfect.",
+    "Every flight begins with a single glide."
+  ]
+}
