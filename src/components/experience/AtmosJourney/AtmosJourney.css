@@ -7,7 +7,7 @@
   inset: 0;
   overflow: hidden;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  background: #7B7FCC;
+  background: #3535cc;
   color: #fff;
 }
 
@@ -34,8 +34,8 @@
   letter-spacing: -0.03em;
   line-height: 0.88;
   text-transform: uppercase;
-  color: #7B7FCC;
-  text-shadow: 0 4px 70px rgba(50, 30, 150, 0.25);
+  color: #3535cc;
+  text-shadow: 0 4px 70px rgba(53, 53, 204, 0.25);
 }
 
 .atmos-intro p {
@@ -43,7 +43,7 @@
   font-size: 9px;
   letter-spacing: 0.36em;
   text-transform: uppercase;
-  color: #7B7FCC;
+  color: #3535cc;
   opacity: 0.55;
   animation: bob 2.4s ease-in-out infinite;
 }
@@ -192,7 +192,7 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 1.4s ease;
-  background: radial-gradient(ellipse at center, rgba(100, 110, 200, 0.32) 0%, transparent 60%);
+  background: radial-gradient(ellipse at center, rgba(53, 53, 204, 0.32) 0%, transparent 60%);
 }
 
 .atmos-end.on { opacity: 1; pointer-events: all; }

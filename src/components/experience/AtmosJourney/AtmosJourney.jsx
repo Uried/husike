@@ -1,25 +1,17 @@
 import React, { useEffect, useRef, useState, useCallback, Suspense, useMemo, useImperativeHandle } from 'react';
-import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
-import { useGLTF, PerspectiveCamera, Text } from '@react-three/drei';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useGLTF, PerspectiveCamera, Text, Environment, Sphere, Instance, Instances } from '@react-three/drei';
+import { EffectComposer, Noise, Bloom, Vignette } from '@react-three/postprocessing';
 import { gsap } from 'gsap';
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
+import { fadeOnBeforeCompile, fadeOnBeforeCompileFlat } from '../../../utils/fadeMaterial';
 import './AtmosJourney.css';
 
-extend({ EffectComposer, RenderPass, ShaderPass });
-
 // ═══════════════════════════════════════════════════════════════════════════════
-// PALETTES & FACTS (from original atmos.leeroy.ca)
+// BACKGROUND COLORS (exact same as atmosClone Home.jsx)
+// colorA = top of gradient, colorB = bottom of gradient
+// GSAP timeline interpolates between these stops based on scroll progress
 // ═══════════════════════════════════════════════════════════════════════════════
-const PALETTES = [
-  [[0.980, 0.760, 0.580], [0.650, 0.550, 0.920], [0.180, 0.140, 0.600]], // dawn - warm orange to deep blue
-  [[0.990, 0.850, 0.550], [0.550, 0.620, 0.980], [0.120, 0.100, 0.550]], // golden - bright yellow to royal blue  
-  [[0.700, 0.820, 0.990], [0.380, 0.480, 0.950], [0.080, 0.080, 0.450]], // noon - white-blue to deep navy
-  [[0.990, 0.680, 0.600], [0.520, 0.450, 0.900], [0.100, 0.080, 0.400]], // rose dusk - pink to purple
-  [[0.750, 0.600, 0.800], [0.350, 0.300, 0.750], [0.050, 0.050, 0.300]], // twilight - purple to deep night
-];
 
 const FACTS = [
   { n: '01', l: 'Altitude',   b: 'Commercial planes cruise\nat 35,000 ft — higher than\nMount Everest by over 5 miles.' },
@@ -32,52 +24,7 @@ const FACTS = [
   { n: '08', l: 'Birds',      b: 'Bird strikes cost the aviation\nindustry over $1.2 billion\nper year worldwide.' },
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// GRAIN & VIGNETTE SHADERS (post-processing)
-// ═══════════════════════════════════════════════════════════════════════════════
-const GrainShader = {
-  uniforms: {
-    tDiffuse: { value: null },
-    uTime: { value: 0 },
-    uStrength: { value: 0.028 },
-  },
-  vertexShader: `
-    varying vec2 vUv;
-    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
-  `,
-  fragmentShader: `
-    uniform sampler2D tDiffuse;
-    uniform float uTime, uStrength;
-    varying vec2 vUv;
-    float hash(vec2 p, float t) { return fract(sin(dot(p + t, vec2(127.1, 311.7))) * 43758.5453); }
-    void main() {
-      vec4 c = texture2D(tDiffuse, vUv);
-      float g = hash(vUv * vec2(1920.0, 1080.0), uTime) * 2.0 - 1.0;
-      gl_FragColor = vec4(c.rgb + g * uStrength, c.a);
-    }
-  `
-};
 
-const VignetteShader = {
-  uniforms: {
-    tDiffuse: { value: null },
-    uD: { value: 0.50 },
-  },
-  vertexShader: `
-    varying vec2 vUv;
-    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
-  `,
-  fragmentShader: `
-    uniform sampler2D tDiffuse;
-    uniform float uD;
-    varying vec2 vUv;
-    void main() {
-      vec4 c = texture2D(tDiffuse, vUv);
-      float d = length(vUv * 2.0 - 1.0);
-      gl_FragColor = vec4(c.rgb * (1.0 - d * d * uD), c.a);
-    }
-  `
-};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // GLIDER COMPONENT - follows flight curve like original
@@ -92,8 +39,8 @@ const Glider = React.forwardRef(function Glider({ curve, scrollProgress }, ref) 
     scene.traverse((child) => {
       if (child.isMesh && child.material) {
         child.castShadow = true;
-        child.material.roughness = 0.28;
-        child.material.metalness = 0.55;
+        child.material.roughness = 0.9;
+        child.material.metalness = 0.0;
       }
     });
   }, [scene]);
@@ -131,41 +78,24 @@ const Glider = React.forwardRef(function Glider({ curve, scrollProgress }, ref) 
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SKY COMPONENT (animated gradient sphere)
+// SKY COMPONENT - exact replica of atmosClone Background.jsx
+// Uses a 2-color gradient (colorA=top, colorB=bottom) on a sphere,
+// matching lamina Gradient with axes="y", start=0.2, end=-0.5
 // ═══════════════════════════════════════════════════════════════════════════════
-function Sky({ paletteIndex, paletteBlend }) {
+function Sky({ backgroundColors }) {
   const meshRef = useRef();
   const materialRef = useRef();
   const { camera } = useThree();
   
   const uniforms = useMemo(() => ({
-    uTime: { value: 0 },
-    uBot: { value: new THREE.Color(...PALETTES[0][0]) },
-    uMid: { value: new THREE.Color(...PALETTES[0][1]) },
-    uTop: { value: new THREE.Color(...PALETTES[0][2]) },
-    uBot2: { value: new THREE.Color(...PALETTES[1][0]) },
-    uMid2: { value: new THREE.Color(...PALETTES[1][1]) },
-    uTop2: { value: new THREE.Color(...PALETTES[1][2]) },
-    uBlend: { value: 0 },
+    uColorA: { value: new THREE.Color("#3535cc") },
+    uColorB: { value: new THREE.Color("#abaadd") },
   }), []);
   
-  useEffect(() => {
+  useFrame(() => {
     if (materialRef.current) {
-      const c = PALETTES[paletteIndex];
-      const n = PALETTES[Math.min(paletteIndex + 1, PALETTES.length - 1)];
-      materialRef.current.uniforms.uBot.value.setRGB(...c[0]);
-      materialRef.current.uniforms.uMid.value.setRGB(...c[1]);
-      materialRef.current.uniforms.uTop.value.setRGB(...c[2]);
-      materialRef.current.uniforms.uBot2.value.setRGB(...n[0]);
-      materialRef.current.uniforms.uMid2.value.setRGB(...n[1]);
-      materialRef.current.uniforms.uTop2.value.setRGB(...n[2]);
-      materialRef.current.uniforms.uBlend.value = paletteBlend;
-    }
-  }, [paletteIndex, paletteBlend]);
-  
-  useFrame((state) => {
-    if (materialRef.current) {
-      materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+      materialRef.current.uniforms.uColorA.value.set(backgroundColors.current.colorA);
+      materialRef.current.uniforms.uColorB.value.set(backgroundColors.current.colorB);
     }
     if (meshRef.current) {
       meshRef.current.position.copy(camera.position);
@@ -174,7 +104,7 @@ function Sky({ paletteIndex, paletteBlend }) {
 
   return (
     <mesh ref={meshRef}>
-      <sphereGeometry args={[280, 40, 20]} />
+      <sphereGeometry args={[500, 40, 20]} />
       <shaderMaterial
         ref={materialRef}
         uniforms={uniforms}
@@ -186,29 +116,16 @@ function Sky({ paletteIndex, paletteBlend }) {
           }
         `}
         fragmentShader={`
-          uniform float uTime, uBlend;
-          uniform vec3 uBot, uMid, uTop, uBot2, uMid2, uTop2;
+          uniform vec3 uColorA, uColorB;
           varying vec3 vPos;
           
-          float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-          
-          float noise(vec2 p) {
-            vec2 i = floor(p), f = fract(p) * fract(p) * (3.0 - 2.0 * fract(p));
-            return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
-                       mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
-          }
-          
-          vec3 grad(vec3 b, vec3 m, vec3 t, float v) {
-            return v < 0.5 ? mix(b, m, v * 2.0) : mix(m, t, (v - 0.5) * 2.0);
-          }
-          
           void main() {
-            float t = clamp((vPos.y + 280.0) / 560.0, 0.0, 1.0);
-            float n = noise(vec2(vPos.x * 0.004 + uTime * 0.032, vPos.z * 0.004 + uTime * 0.024)) * 0.09;
-            float tt = clamp(t + n, 0.0, 1.0);
-            vec3 c1 = grad(uBot, uMid, uTop, tt);
-            vec3 c2 = grad(uBot2, uMid2, uTop2, tt);
-            gl_FragColor = vec4(mix(c1, c2, uBlend), 1.0);
+            // Replicate lamina Gradient: axes="y", start=0.2, end=-0.5
+            float rawY = vPos.y / 500.0; // normalized -1 to 1
+            float t = smoothstep(-0.5, 0.2, rawY);
+            // t=0 at bottom (colorB), t=1 at top (colorA)
+            vec3 color = mix(uColorB, uColorA, t);
+            gl_FragColor = vec4(color, 1.0);
           }
         `}
         side={THREE.BackSide}
@@ -218,46 +135,96 @@ function Sky({ paletteIndex, paletteBlend }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// WIND PARTICLES
+// SPEED LINES - exact copy from atmosClone Speed.jsx
+// Lines appear when scrolling fast, fade out when idle
 // ═══════════════════════════════════════════════════════════════════════════════
-function WindParticles({ scrollVelocity }) {
-  const meshRef = useRef();
-  const dummy = useMemo(() => new THREE.Object3D(), []);
-  const WIND_N = 700;
-  
-  const windPts = useMemo(() => {
-    return Array.from({ length: WIND_N }, () => ({
-      ox: (Math.random() - 0.5) * 20,
-      oy: (Math.random() - 0.5) * 12,
-      oz: (Math.random() - 0.5) * 14,
-      z: 0,
-      spd: 0.07 + Math.random() * 0.15,
-    }));
-  }, []);
+const SPEED_INSTANCES = 240;
+const SPEED_MAX_OPACITY = 0.1;
 
-  useFrame(() => {
-    if (!meshRef.current) return;
-    
-    windPts.forEach((pt, i) => {
-      pt.z += pt.spd;
-      if (pt.z > 14) pt.z = -14;
-      
-      const opacity = Math.min(1, scrollVelocity * 3) * (1 - Math.abs(pt.z) / 14);
-      
-      dummy.position.set(pt.ox, pt.oy, pt.z + pt.oz);
-      dummy.rotation.z = Math.PI / 2;
-      dummy.scale.set(1, 1, 1);
-      dummy.updateMatrix();
-      meshRef.current.setMatrixAt(i, dummy.matrix);
-    });
-    meshRef.current.instanceMatrix.needsUpdate = true;
+function SpeedShape() {
+  const ref = useRef();
+  let randomPosition = { x: 0, y: 0, z: 0 };
+  let randomSpeed = 0;
+
+  const resetRandom = () => {
+    randomPosition = {
+      x: THREE.MathUtils.randFloatSpread(8),
+      y: THREE.MathUtils.randFloatSpread(5),
+      z: THREE.MathUtils.randFloatSpread(8),
+    };
+    randomSpeed = THREE.MathUtils.randFloat(16, 20);
+  };
+  resetRandom();
+
+  useFrame((_state, delta) => {
+    if (ref.current) {
+      ref.current.position.z += randomSpeed * delta;
+      if (ref.current.position.z > 5) {
+        resetRandom();
+        ref.current.position.z = randomPosition.z;
+      }
+    }
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[null, null, WIND_N]} frustumCulled={false}>
-      <planeGeometry args={[0.035, 0.48]} />
-      <meshBasicMaterial color={0xffffff} transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
-    </instancedMesh>
+    <Instance
+      ref={ref}
+      color="white"
+      position={[randomPosition.x, randomPosition.y, randomPosition.z]}
+      rotation-y={Math.PI / 2}
+    />
+  );
+}
+
+function SpeedLines({ scrollProgressRef }) {
+  const speedMaterial = useRef();
+  const lastScroll = useRef(0);
+  const wheelVelocity = useRef(0);
+
+  // Listen to wheel events directly to detect fast scrolling reliably
+  useEffect(() => {
+    const onWheel = (e) => {
+      // Accumulate scroll velocity from wheel events
+      wheelVelocity.current += Math.abs(e.deltaY) * 0.001;
+    };
+    window.addEventListener('wheel', onWheel, { passive: true });
+    return () => window.removeEventListener('wheel', onWheel);
+  }, []);
+
+  useFrame((_state, delta) => {
+    if (!speedMaterial.current) return;
+
+    // Show lines when wheel velocity is high enough
+    if (wheelVelocity.current > 0.01) {
+      speedMaterial.current.opacity = SPEED_MAX_OPACITY;
+    }
+    // Decay wheel velocity over time
+    wheelVelocity.current *= 0.85;
+
+    // Fade out gradually
+    if (speedMaterial.current.opacity > 0) {
+      speedMaterial.current.opacity -= delta * 0.2;
+    }
+  });
+
+  return (
+    <group>
+      <Instances>
+        <planeGeometry args={[1, 0.004]} />
+        <meshBasicMaterial
+          ref={speedMaterial}
+          side={THREE.DoubleSide}
+          blending={THREE.AdditiveBlending}
+          opacity={0}
+          transparent
+        />
+        {Array(SPEED_INSTANCES)
+          .fill()
+          .map((_, key) => (
+            <SpeedShape key={key} />
+          ))}
+      </Instances>
+    </group>
   );
 }
 
@@ -296,12 +263,13 @@ function GuideTube({ curve, scrollProgress }) {
 
   return (
     <mesh ref={meshRef} geometry={geometry}>
-      <meshBasicMaterial 
+      <meshStandardMaterial 
         ref={materialRef}
-        color={0xffffff} 
+        color={"white"}
         transparent 
-        opacity={0.25} 
-        depthWrite={false} 
+        opacity={0.25}
+        envMapIntensity={2}
+        onBeforeCompile={fadeOnBeforeCompile}
       />
     </mesh>
   );
@@ -375,32 +343,37 @@ function EasterEgg({ curve, scrollProgress, onFound }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CLOUD COMPONENT - matching Leeroy's exact material
+// CLOUD COMPONENT - using fadeOnBeforeCompile for distance-based fog (like original)
 // ═══════════════════════════════════════════════════════════════════════════════
-function Cloud({ modelPath, position, scale = 1, cloudMaterial }) {
+function Cloud({ modelPath, position, scale = 1, sceneOpacity }) {
   const { scene } = useGLTF(modelPath);
+  const materialRef = useRef();
   
   // Clone the scene for this cloud instance
   const clonedScene = useMemo(() => scene.clone(true), [scene]);
-  
-  // Default cloud material - matte like original (not glossy)
-  const defaultMaterial = useMemo(() => {
-    return new THREE.MeshStandardMaterial({
-      color: new THREE.Color(0.695, 0.718, 0.968),
-      roughness: 0.9,  // High roughness = matte
-      metalness: 0.0,
-    });
-  }, []);
 
   useEffect(() => {
     clonedScene.traverse((child) => {
       if (child.isMesh) {
-        child.material = cloudMaterial || defaultMaterial;
-        child.castShadow = true;
-        child.receiveShadow = true;
+        // Apply a new MeshStandardMaterial with fadeOnBeforeCompile
+        // This replicates the atmosClone's cloud material exactly
+        const mat = new THREE.MeshStandardMaterial({
+          onBeforeCompile: fadeOnBeforeCompile,
+          envMapIntensity: 2,
+          transparent: true,
+        });
+        child.material = mat;
+        if (!materialRef.current) materialRef.current = mat;
       }
     });
-  }, [clonedScene, cloudMaterial, defaultMaterial]);
+  }, [clonedScene]);
+
+  // Sync opacity with scene opacity (fade in/out with scene)
+  useFrame(() => {
+    if (materialRef.current && sceneOpacity != null) {
+      materialRef.current.opacity = sceneOpacity;
+    }
+  });
 
   return (
     <primitive 
@@ -472,9 +445,12 @@ function Facts3D({ curve, scrollProgress }) {
             anchorY="bottom"
             position={[-0.3, 0.15, 0]}
             letterSpacing={0.1}
-            opacity={0.7}
           >
             {fact.n} — {fact.l}
+            <meshStandardMaterial
+              color={"white"}
+              onBeforeCompile={fadeOnBeforeCompileFlat}
+            />
           </Text>
           {/* Fact body text */}
           <Text
@@ -489,6 +465,10 @@ function Facts3D({ curve, scrollProgress }) {
             letterSpacing={0.02}
           >
             {fact.b.replace(/\n/g, ' ')}
+            <meshStandardMaterial
+              color={"white"}
+              onBeforeCompile={fadeOnBeforeCompileFlat}
+            />
           </Text>
         </group>
       ))}
@@ -497,87 +477,24 @@ function Facts3D({ curve, scrollProgress }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// POST PROCESSING COMPONENT (using drei/EffectComposer would be better, using manual for now)
-// ═══════════════════════════════════════════════════════════════════════════════
-function PostProcessing({ scrollProgress }) {
-  const { gl, scene, camera, size } = useThree();
-  const composerRef = useRef();
-  const grainPassRef = useRef();
-  
-  useEffect(() => {
-    if (!gl || !scene || !camera) return;
-    
-    const composer = new EffectComposer(gl);
-    composer.setSize(size.width, size.height);
-    
-    const renderPass = new RenderPass(scene, camera);
-    composer.addPass(renderPass);
-    
-    const grainPass = new ShaderPass(GrainShader);
-    grainPass.uniforms.uTime.value = 0;
-    composer.addPass(grainPass);
-    grainPassRef.current = grainPass;
-    
-    const vigPass = new ShaderPass(VignetteShader);
-    composer.addPass(vigPass);
-    
-    composerRef.current = composer;
-    
-    return () => {
-      composer.dispose();
-    };
-  }, [gl, scene, camera, size]);
-  
-  useFrame((state) => {
-    if (grainPassRef.current) {
-      grainPassRef.current.uniforms.uTime.value = state.clock.elapsedTime;
-    }
-    if (composerRef.current) {
-      composerRef.current.render();
-    }
-  }, 1);
-  
-  return null;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // SCENE - complete implementation matching original
 // ═══════════════════════════════════════════════════════════════════════════════
-function Scene({ scrollProgress, curve, onEggFound }) {
+function Scene({ scrollProgress, scrollProgressRef, curve, onEggFound, backgroundColors, bgTimeline }) {
   const { camera, scene } = useThree();
   const gliderRef = useRef();
-  const hemiRef = useRef();
-  const [scrollVel, setScrollVel] = useState(0);
+
   
-  // Calculate palette based on scroll
-  const paletteIndex = Math.min(Math.floor(scrollProgress * (PALETTES.length - 1)), PALETTES.length - 2);
-  const paletteBlend = (scrollProgress * (PALETTES.length - 1)) - paletteIndex;
-  
-  // Setup lighting and fog
+  // No FogExp2 — distance fade is handled by fadeMaterial shader (like the original)
   useEffect(() => {
-    scene.fog = new THREE.FogExp2(0x8899dd, 0.005);
-    renderer?.setClearColor(0x8899dd);
+    scene.fog = null;
   }, [scene]);
   
-  const { gl: renderer } = useThree();
-  
-  // Update lighting colors based on palette
-  useEffect(() => {
-    if (hemiRef.current) {
-      const c = PALETTES[paletteIndex];
-      const n = PALETTES[Math.min(paletteIndex + 1, PALETTES.length - 1)];
-      const lr = (a, b, t) => a + (b - a) * t;
-      hemiRef.current.color.setRGB(lr(c[1][0], n[1][0], paletteBlend), lr(c[1][1], n[1][1], paletteBlend), lr(c[1][2], n[1][2], paletteBlend));
-      hemiRef.current.groundColor.setRGB(lr(c[0][0], n[0][0], paletteBlend), lr(c[0][1], n[0][1], paletteBlend), lr(c[0][2], n[0][2], paletteBlend));
+  // Seek the GSAP color timeline based on scroll (exactly like atmosClone)
+  useFrame(() => {
+    if (bgTimeline.current) {
+      bgTimeline.current.seek(scrollProgress * bgTimeline.current.duration());
     }
-    if (scene.fog) {
-      const c = PALETTES[paletteIndex];
-      const n = PALETTES[Math.min(paletteIndex + 1, PALETTES.length - 1)];
-      const lr = (a, b, t) => a + (b - a) * t;
-      scene.fog.color.setRGB(lr(c[1][0], n[1][0], paletteBlend) * 0.85, lr(c[1][1], n[1][1], paletteBlend) * 0.85, lr(c[1][2], n[1][2], paletteBlend) * 0.95);
-      renderer?.setClearColor(scene.fog.color);
-    }
-  }, [paletteIndex, paletteBlend, scene, renderer]);
+  });
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -612,29 +529,34 @@ function Scene({ scrollProgress, curve, onEggFound }) {
 
   return (
     <>
-      {/* Sky */}
-      <Sky paletteIndex={paletteIndex} paletteBlend={paletteBlend} />
+      {/* Sky - 2-color gradient sphere driven by GSAP timeline (like atmosClone) */}
+      <Sky backgroundColors={backgroundColors} />
       
       {/* Lighting */}
-      <hemisphereLight ref={hemiRef} skyColor={0xd0ccff} groundColor={0xffc8a0} intensity={1.5} />
+      <directionalLight position={[0, 3, 1]} intensity={0.1} />
+      <hemisphereLight skyColor={0xd0ccff} groundColor={0xffc8a0} intensity={1.5} />
       <directionalLight color={0xffffff} intensity={2.5} position={[10, 14, 6]} castShadow shadow-mapSize={[1024, 1024]} />
       <directionalLight color={0xffddcc} intensity={0.75} position={[-8, -4, 8]} />
       <directionalLight color={0xaabbff} intensity={0.85} position={[0, 8, -14]} />
       
+      {/* Environment map for cloud reflections (like atmosClone Background) */}
+      <Environment resolution={256} frames={Infinity}>
+        <Sphere scale={[100, 100, 100]} rotation-y={Math.PI / 2}>
+          <meshStandardMaterial color={"#ffffff"} side={THREE.BackSide} />
+        </Sphere>
+      </Environment>
+      
       {/* Guide Tube */}
       <GuideTube curve={curve} scrollProgress={scrollProgress} />
       
-      {/* Wind Particles */}
-      <WindParticles scrollVelocity={scrollVel} />
+      {/* Speed lines - appear when scrolling fast (like atmosClone) */}
+      <SpeedLines scrollProgressRef={scrollProgressRef} />
       
       {/* Glider */}
       <Glider ref={gliderRef} curve={curve} scrollProgress={scrollProgress} />
       
       {/* Easter Egg Elephant */}
       <EasterEgg curve={curve} scrollProgress={scrollProgress} onFound={onEggFound} />
-      
-      {/* Post Processing - original doesn't use complex post-processing */}
-      {/* <PostProcessing scrollProgress={scrollProgress} /> */}
     </>
   );
 }
@@ -654,7 +576,37 @@ const AtmosJourney = () => {
   const scrollContainerRef = useRef(null);
   const audioCtxRef = useRef(null);
   const gainNodeRef = useRef(null);
-  const cloudMatRef = useRef(null);
+  const sceneOpacityRef = useRef(1);
+  const scrollProgressRef = useRef(0);
+  
+  // Background colors driven by GSAP timeline (exact copy from atmosClone)
+  const backgroundColors = useRef({
+    colorA: "#3535cc",
+    colorB: "#abaadd",
+  });
+  const bgTimeline = useRef(null);
+  
+  useEffect(() => {
+    const tl = gsap.timeline();
+    tl.to(backgroundColors.current, {
+      duration: 1,
+      colorA: "#6f35cc",
+      colorB: "#ffad30",
+    });
+    tl.to(backgroundColors.current, {
+      duration: 1,
+      colorA: "#424242",
+      colorB: "#ffcc00",
+    });
+    tl.to(backgroundColors.current, {
+      duration: 1,
+      colorA: "#81318b",
+      colorB: "#55ab8f",
+    });
+    tl.pause();
+    bgTimeline.current = tl;
+    return () => tl.kill();
+  }, []);
   
   // Generate flight curve - flat path with turns only, no mountains
   const flightCurve = useMemo(() => {
@@ -671,39 +623,24 @@ const AtmosJourney = () => {
     return new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
   }, []);
 
-  // Scroll handling with inertia - slower base, even slower near facts
+  // Scroll handling with inertia
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
     
     let targetProg = 0;
     let currentProg = 0;
-    const BASE_SK = 0.00018; // Reduced from 0.00036
+    const BASE_SK = 0.0012;
     let rafId;
-    
-    // Calculate distance to nearest fact for slowdown
-    const getNearestFactDistance = (prog) => {
-      let minDist = 1;
-      for (let i = 0; i < FACTS.length; i++) {
-        const factT = (i + 1) / (FACTS.length + 1);
-        const dist = Math.abs(prog - factT);
-        if (dist < minDist) minDist = dist;
-      }
-      return minDist;
-    };
     
     const handleWheel = (e) => {
       if (showEnd) return;
-      
-      // Slow down more when near facts (within 0.08 range)
-      const factDist = getNearestFactDistance(currentProg);
-      const slowdownFactor = factDist < 0.08 ? 0.3 : 1.0; // 70% slower near facts
-      
-      targetProg = Math.max(0, Math.min(1, targetProg + e.deltaY * BASE_SK * slowdownFactor));
+      targetProg = Math.max(0, Math.min(1, targetProg + e.deltaY * BASE_SK));
     };
     
     const animate = () => {
-      currentProg += (targetProg - currentProg) * 0.04; // Slower lerp too
+      currentProg += (targetProg - currentProg) * 0.18;
+      scrollProgressRef.current = currentProg; // Update ref every frame for SpeedLines
       setScrollProgress(currentProg);
       setShowEnd(currentProg > 0.95);
       rafId = requestAnimationFrame(animate);
@@ -771,10 +708,6 @@ const AtmosJourney = () => {
     });
   }, [started]);
 
-  // Update palette based on scroll
-  const paletteIndex = Math.min(Math.floor(scrollProgress * (PALETTES.length - 1)), PALETTES.length - 2);
-  const paletteBlend = (scrollProgress * (PALETTES.length - 1)) - paletteIndex;
-  
   // Fixed cloud positions - distant from flight path, glider never intersects
   const cloudPositions = useMemo(() => {
     return Array.from({ length: 16 }, (_, i) => {
@@ -812,17 +745,8 @@ const AtmosJourney = () => {
     });
   }, [flightCurve]);
   
-  // Cloud material for tinting based on sky - matte like original
-  cloudMatRef.current = useMemo(() => {
-    const c = PALETTES[paletteIndex];
-    const n = PALETTES[Math.min(paletteIndex + 1, PALETTES.length - 1)];
-    const lr = (a, b, t) => a + (b - a) * t;
-    return new THREE.MeshStandardMaterial({
-      color: new THREE.Color(lr(c[1][0] * 0.95, n[1][0] * 0.95, paletteBlend), lr(c[1][1] * 0.97, n[1][1] * 0.97, paletteBlend), lr(c[1][2], n[1][2], paletteBlend)),
-      roughness: 0.9,  // Matte, not glossy
-      metalness: 0,
-    });
-  }, [paletteIndex, paletteBlend]);
+  // Scene opacity for fade-in (clouds use this)
+  sceneOpacityRef.current = started ? 1 : 0;
   
   // Mouse tracking for custom cursor
   useEffect(() => {
@@ -835,7 +759,7 @@ const AtmosJourney = () => {
     <div 
       ref={containerRef}
       className="atmos-container"
-      style={{ background: `#7B7FCC` }}
+      style={{ background: `#3535cc` }}
     >
       {/* Custom cursor */}
       <div 
@@ -897,8 +821,11 @@ const AtmosJourney = () => {
           <Suspense fallback={null}>
             <Scene 
               scrollProgress={scrollProgress} 
+              scrollProgressRef={scrollProgressRef}
               curve={flightCurve} 
               onEggFound={() => setEggFound(true)}
+              backgroundColors={backgroundColors}
+              bgTimeline={bgTimeline}
             />
             
             {/* 3D Facts positioned along flight curve */}
@@ -915,7 +842,7 @@ const AtmosJourney = () => {
                   cloud.pt.z + cloud.offsetZ
                 ]}
                 scale={cloud.scale}
-                cloudMaterial={cloudMatRef.current}
+                sceneOpacity={sceneOpacityRef.current}
               />
             ))}
             
@@ -930,10 +857,21 @@ const AtmosJourney = () => {
                   cloud.pt.z + cloud.offsetZ
                 ]}
                 scale={cloud.scale}
-                cloudMaterial={cloudMatRef.current}
+                sceneOpacity={sceneOpacityRef.current}
               />
             ))}
           </Suspense>
+          {/* Post-processing: grain + bloom + vignette (like the original Atmos) */}
+          <EffectComposer>
+            <Bloom
+              intensity={1.2}
+              luminanceThreshold={0.3}
+              luminanceSmoothing={0.95}
+              mipmapBlur
+            />
+            <Noise opacity={0.1} />
+            <Vignette eskil={false} offset={0.1} darkness={0.5} />
+          </EffectComposer>
         </Canvas>
       </div>
 
