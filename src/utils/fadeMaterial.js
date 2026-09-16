@@ -3,7 +3,7 @@
  * Makes objects smoothly fade out based on camera distance,
  * creating a natural fog/depth effect without using Three.js fog.
  */
-const replaceFragmentShader = (fragmentShader) =>
+const replaceFragmentShader = (fragmentShader, fadeDistance = 350) =>
   fragmentShader
     .replace(
       `#include <common>`,
@@ -31,7 +31,7 @@ const replaceFragmentShader = (fragmentShader) =>
     .replace(
       `vec4 diffuseColor = vec4( diffuse, opacity );`,
       `
-float fadeDist = 350.0;
+float fadeDist = ${fadeDistance.toFixed(1)};
 float dist = length(vViewPosition);
 
 float fadeOpacity = smoothstep(fadeDist, 0.0, dist);
@@ -41,6 +41,10 @@ vec4 diffuseColor = vec4( diffuse, fadeOpacity * opacity );`
 
 export const fadeOnBeforeCompile = (shader) => {
   shader.fragmentShader = replaceFragmentShader(shader.fragmentShader);
+};
+
+export const cloudFadeOnBeforeCompile = (shader) => {
+  shader.fragmentShader = replaceFragmentShader(shader.fragmentShader, 24);
 };
 
 export const fadeOnBeforeCompileFlat = (shader) => {

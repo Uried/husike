@@ -4,7 +4,7 @@ import { useGLTF, PerspectiveCamera, Text, Environment, Sphere, Instance, Instan
 import { EffectComposer, Noise, Bloom, Vignette } from '@react-three/postprocessing';
 import { gsap } from 'gsap';
 import * as THREE from 'three';
-import { fadeOnBeforeCompile, fadeOnBeforeCompileFlat } from '../../../utils/fadeMaterial';
+import { cloudFadeOnBeforeCompile, fadeOnBeforeCompile, fadeOnBeforeCompileFlat } from '../../../utils/fadeMaterial';
 import './AtmosJourney.css';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -358,7 +358,7 @@ function Cloud({ modelPath, position, scale = 1, sceneOpacity }) {
         // Apply a new MeshStandardMaterial with fadeOnBeforeCompile
         // This replicates the atmosClone's cloud material exactly
         const mat = new THREE.MeshStandardMaterial({
-          onBeforeCompile: fadeOnBeforeCompile,
+          onBeforeCompile: cloudFadeOnBeforeCompile,
           envMapIntensity: 2,
           transparent: true,
         });
@@ -630,16 +630,17 @@ const AtmosJourney = () => {
     
     let targetProg = 0;
     let currentProg = 0;
-    const BASE_SK = 0.0012;
+    const BASE_SK = 0.00035;
     let rafId;
     
     const handleWheel = (e) => {
       if (showEnd) return;
-      targetProg = Math.max(0, Math.min(1, targetProg + e.deltaY * BASE_SK));
+      const wheelDelta = THREE.MathUtils.clamp(e.deltaY, -120, 120);
+      targetProg = Math.max(0, Math.min(1, targetProg + wheelDelta * BASE_SK));
     };
     
     const animate = () => {
-      currentProg += (targetProg - currentProg) * 0.18;
+      currentProg += (targetProg - currentProg) * 0.06;
       scrollProgressRef.current = currentProg; // Update ref every frame for SpeedLines
       setScrollProgress(currentProg);
       setShowEnd(currentProg > 0.95);
