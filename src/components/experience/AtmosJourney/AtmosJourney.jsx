@@ -630,12 +630,12 @@ const AtmosJourney = () => {
     
     let targetProg = 0;
     let currentProg = 0;
-    const BASE_SK = 0.00035;
+    const BASE_SK = 0.00012;
     let rafId;
     
     const handleWheel = (e) => {
       if (showEnd) return;
-      const wheelDelta = THREE.MathUtils.clamp(e.deltaY, -120, 120);
+      const wheelDelta = THREE.MathUtils.clamp(e.deltaY, -80, 80);
       targetProg = Math.max(0, Math.min(1, targetProg + wheelDelta * BASE_SK));
     };
     
